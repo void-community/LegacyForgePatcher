@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+artifacts/
+TestResults/
+*.user
+*.suo
+.vs/
+.idea/
+hs_err_pid*
+core
+core.*

@@ -1,0 +1,26 @@
+name: Version Workflow
+on:
+  workflow_call:
+    outputs:
+      version:
+        value: ${{ jobs.version.outputs.version }}
+      timestamp:
+        value: ${{ jobs.version.outputs.timestamp }}
+jobs:
+  version:
+    runs-on: ubuntu-26.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      timestamp: ${{ steps.version.outputs.timestamp }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.402
+      - id: version
+        shell: bash
+        run: |
+          version_timestamp="$(date -u '+%y %m %d %H %M %S')"
+          package_version="$(dotnet msbuild src/LegacyForgePatcher/LegacyForgePatcher.csproj -getProperty:PackageVersion "-p:VersionTimestamp=$version_timestamp")"
+          echo "version=$package_version" >> "$GITHUB_OUTPUT"
+          echo "timestamp=$version_timestamp" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,20 @@
+name: Automation Reconciliation
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+jobs:
+  reconcile:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Validate main after bot merges
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(git rev-parse HEAD)
+          count=$(gh run list --workflow runnable-commit.yml --commit "$sha" --json databaseId --jq length)
+          if [[ "$count" == 0 ]]; then gh workflow run runnable-commit.yml --ref main; fi

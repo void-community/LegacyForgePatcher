@@ -1,0 +1,34 @@
+name: Commit Workflow
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: commit-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  version:
+    uses: ./.github/workflows/reusable-version.yml
+  build:
+    needs: version
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      timestamp: ${{ needs.version.outputs.timestamp }}
+  test:
+    needs: [version, build]
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      timestamp: ${{ needs.version.outputs.timestamp }}
+  publish:
+    if: github.repository == 'void-community/LegacyForgePatcher' && github.ref == 'refs/heads/main'
+    needs: [version, build, test]
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/publish-nuget.yml
+    with:
+      version: ${{ needs.version.outputs.version }}

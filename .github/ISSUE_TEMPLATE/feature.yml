@@ -1,0 +1,10 @@
+name: Feature request
+description: Propose a fix for another legacy Forge launch problem, or a new verified platform.
+body:
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the problem, the Forge and Java versions it affects, and how a fix could be verified.
+    validations:
+      required: true

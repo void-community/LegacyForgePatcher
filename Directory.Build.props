@@ -1,0 +1,31 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>14.0</LangVersion>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <Authors>void-community</Authors>
+    <RepositoryUrl>https://github.com/void-community/LegacyForgePatcher</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+  <!-- Matches caunt/NetAgents: UTC year.month.day and a 1000..9999 time-of-day bucket. -->
+  <PropertyGroup>
+    <VersionTimestamp Condition="'$(VersionTimestamp)' == ''">$([System.DateTimeOffset]::UtcNow.ToString('yy MM dd HH mm ss'))</VersionTimestamp>
+    <VersionYear>$([System.Int32]::Parse('$(VersionTimestamp.Substring(0,2))'))</VersionYear>
+    <VersionMonth>$([System.Int32]::Parse('$(VersionTimestamp.Substring(3,2))'))</VersionMonth>
+    <VersionDay>$([System.Int32]::Parse('$(VersionTimestamp.Substring(6,2))'))</VersionDay>
+    <VersionHour>$([System.Int32]::Parse('$(VersionTimestamp.Substring(9,2))'))</VersionHour>
+    <VersionMinute>$([System.Int32]::Parse('$(VersionTimestamp.Substring(12,2))'))</VersionMinute>
+    <VersionSecond>$([System.Int32]::Parse('$(VersionTimestamp.Substring(15,2))'))</VersionSecond>
+    <VersionHoursAsSeconds>$([MSBuild]::Multiply($(VersionHour), 3600))</VersionHoursAsSeconds>
+    <VersionMinutesAsSeconds>$([MSBuild]::Multiply($(VersionMinute), 60))</VersionMinutesAsSeconds>
+    <VersionSecondsOfDay>$([MSBuild]::Add($([MSBuild]::Add($(VersionHoursAsSeconds), $(VersionMinutesAsSeconds))), $(VersionSecond)))</VersionSecondsOfDay>
+    <VersionScaledSecondsOfDay>$([MSBuild]::Multiply($(VersionSecondsOfDay), 9000))</VersionScaledSecondsOfDay>
+    <VersionTimeBucket>$([MSBuild]::Add(1000, $([MSBuild]::Divide($(VersionScaledSecondsOfDay), 86400))))</VersionTimeBucket>
+    <Version Condition="'$(Version)' == ''">$(VersionYear).$(VersionMonth).$(VersionDay).$(VersionTimeBucket)</Version>
+    <PackageVersion Condition="'$(PackageVersion)' == ''">$(Version)</PackageVersion>
+  </PropertyGroup>
+</Project>

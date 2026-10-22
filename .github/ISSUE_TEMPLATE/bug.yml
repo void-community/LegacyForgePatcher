@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a legacy Forge launch the agent doesn't fix, or one it breaks.
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Package version, Minecraft and Forge versions, server or client, JVM vendor and full version, OS, and JVM process architecture.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: The exact launch command or launcher settings, including how the agent is loaded.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The full launch log, including any crash report, after removing sensitive data.

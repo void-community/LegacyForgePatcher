@@ -1,0 +1,33 @@
+name: PR Workflow
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  version:
+    uses: ./.github/workflows/reusable-version.yml
+  build:
+    needs: version
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      timestamp: ${{ needs.version.outputs.timestamp }}
+  test:
+    needs: [version, build]
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      timestamp: ${{ needs.version.outputs.timestamp }}
+  required:
+    if: always()
+    needs: [build, test]
+    runs-on: ubuntu-26.04
+    steps:
+      - env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+        run: test "$BUILD_RESULT" = success && test "$TEST_RESULT" = success

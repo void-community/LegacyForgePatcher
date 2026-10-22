@@ -1,0 +1,20 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:best-practices"],
+  "dependencyDashboard": true,
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The itzg image the Forge server tests run",
+      "managerFilePatterns": ["/^tests/.+\\.cs$/"],
+      "matchStrings": ["\"(?<depName>itzg/minecraft-server):(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {"matchUpdateTypes": ["minor", "patch", "pin", "digest"], "automerge": true},
+    {"matchUpdateTypes": ["major"], "automerge": false}
+  ]
+}
