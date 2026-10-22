@@ -4,9 +4,13 @@
 [![Release](https://img.shields.io/github/v/release/void-community/LegacyForgePatcher?style=for-the-badge)](https://github.com/void-community/LegacyForgePatcher/releases/latest)
 [![License](https://img.shields.io/github/license/void-community/LegacyForgePatcher?style=for-the-badge)](LICENSE)
 
-**Run Forge for Minecraft 1.7.2 on Java 8u20 and later.** ☕
+**Fix legacy Forge servers that break on current Java or under load.** ☕
 
-Forge for Minecraft 1.7.2 stops before Minecraft loads on current Java 8 releases:
+LegacyForgePatcher is a native Java agent that repairs these while the game loads. It changes no game or Forge files and needs no .NET installation. ✨
+
+## 🩹 What it fixes
+
+**Forge for Minecraft 1.7.2 stops before Minecraft loads on Java 8u20 and later:**
 
 ```text
 [main/INFO] [LaunchWrapper]: Calling tweak class cpw.mods.fml.common.launcher.FMLInjectionAndSortingTweaker
@@ -17,7 +21,11 @@ java.util.ConcurrentModificationException
 	at net.minecraft.launchwrapper.Launch.launch(Launch.java:117) [launchwrapper-1.9.jar:?]
 ```
 
-LegacyForgePatcher is a native Java agent that fixes this while the game loads. It changes no game or Forge files and needs no .NET installation. ✨
+**Forge for Minecraft 1.12 drops players at login when the server is busy:**
+
+```text
+[Server thread/INFO] [minecraft/NetHandlerPlayServer]: Player lost connection: Internal Exception: io.netty.handler.codec.EncoderException: java.io.IOException: Can't serialize unregistered packet
+```
 
 ## 🚀 Usage
 
@@ -30,25 +38,33 @@ curl -fsSL -O https://github.com/void-community/LegacyForgePatcher/releases/late
 Add it to the Java arguments of the server or the launcher profile with `-javaagent`:
 
 ```sh
-java -javaagent:legacyforgepatcher.jar -jar forge-1.7.2-10.12.2.1161-mc172-universal.jar nogui
+java -javaagent:legacyforgepatcher.jar -jar forge-1.12.2-14.23.5.2859.jar nogui
 ```
 
 🐳 With [**itzg/minecraft-server**](https://github.com/itzg/docker-minecraft-server), mount the jar and pass it through `JVM_OPTS`:
 
 ```sh
-docker run -d -e EULA=TRUE -e TYPE=FORGE -e VERSION=1.7.2 \
+docker run -d -e EULA=TRUE -e TYPE=FORGE -e VERSION=1.12.2 \
   -e JVM_OPTS=-javaagent:/patcher/legacyforgepatcher.jar \
   -v "$PWD/legacyforgepatcher.jar:/patcher/legacyforgepatcher.jar:ro" \
   itzg/minecraft-server:java8
 ```
 
-✅ The game's log confirms the fix:
+✅ The game's log confirms each fix when Forge loads the code it repairs; on Forge 1.12 that is at the first login:
 
 ```text
 LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager (sortTweakList()V: 1 invocation of java/util/Collections.sort redirected)
+LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/NetworkDispatcher (custom edit applied)
 ```
 
 ## 📦 Compatibility
+
+| Minecraft | Forge         | Fix                                    |
+|-----------|---------------|----------------------------------------|
+| 1.7.2     | 10.12.2.1161  | Launches on Java 8u20 and later        |
+| 1.12      | 14.21.1.2387  | Keeps players that log in under load   |
+| 1.12.1    | 14.22.1.2478  | Keeps players that log in under load   |
+| 1.12.2    | 14.23.5.2859  | Keeps players that log in under load   |
 
 | Platform    | `-javaagent` jar         | `-agentpath` library                |
 |-------------|--------------------------|-------------------------------------|
@@ -57,7 +73,7 @@ LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager (sortTweakLis
 
 The jar unpacks the library of its platform into a temporary directory when the JVM starts. To load the library directly, pass the `.so` of your platform to `-agentpath` with an absolute path.
 
-CI starts a Forge 1.7.2 server on Java 8 in itzg/minecraft-server with the agent on both platforms for every commit, once with the jar and once with the `.so`. The agent leaves a game alone when its Forge doesn't sort this way; Forge for Minecraft 1.6.4, for example, starts on Java 8 without it.
+For every commit, CI starts these Forge servers on Java 8 in itzg/minecraft-server with the agent on both platforms: Forge 1.7.2 once with the jar and once with the `.so`, and each Forge 1.12 build with the jar and 200 players logging in at once. The agent leaves a game alone when its Forge doesn't have the code a fix targets; Forge for Minecraft 1.6.4, for example, starts on Java 8 without it.
 
 ## 📄 License
 
