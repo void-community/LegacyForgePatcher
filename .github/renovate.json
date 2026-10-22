@@ -14,6 +14,7 @@
     }
   ],
   "packageRules": [
+    {"description": "JvmBridge.Testing requires at least the same JvmBridge version, so the two update together", "matchPackageNames": ["JvmBridge", "JvmBridge.Testing"], "groupName": "JvmBridge"},
     {"matchUpdateTypes": ["minor", "patch", "pin", "digest"], "automerge": true},
     {"matchUpdateTypes": ["major"], "automerge": false}
   ]
