@@ -2,6 +2,8 @@
   <PropertyGroup>
     <JvmBridgeAgent>true</JvmBridgeAgent>
     <PublishAot>true</PublishAot>
+    <!-- Compiling the Java helper needs a JDK; this downloads a pinned one when JvmBridgeJdkHome and JAVA_HOME name none. -->
+    <JvmBridgeProvisionJdk>true</JvmBridgeProvisionJdk>
     <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
     <Description>A native JVM agent that lets Forge for Minecraft 1.7.2 launch on Java 8u20 and later.</Description>
   </PropertyGroup>

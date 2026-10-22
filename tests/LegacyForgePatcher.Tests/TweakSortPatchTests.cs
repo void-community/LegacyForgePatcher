@@ -1,5 +1,6 @@
 using JvmBridge.Agents;
 using JvmBridge.ClassFiles;
+using JvmBridge.Testing;
 
 using Xunit;
 
@@ -53,9 +54,7 @@ public sealed class TweakSortPatchTests
     {
         byte[] patched = PatcherAgent.TweakSort.Apply(CreateClassFile((SortTweakList, CallsSort: true), (Name: "other", CallsSort: true))).Bytes ?? throw new InvalidOperationException(message: "The class file was left unchanged.");
 
-        MemberReference invoked = GetInvokedMethod(patched, method: "other");
-
-        Assert.Equal(expected: "java/util/Collections", invoked.Owner);
+        ClassFileAssert.Calls(patched, method: "other", owner: "java/util/Collections", name: "sort", SortDescriptor);
     }
 
     /// <summary>The call in <c>sortTweakList</c> now goes to the helper, and the result says it was the only one redirected.</summary>
@@ -65,12 +64,9 @@ public sealed class TweakSortPatchTests
         ClassPatchResult result = PatcherAgent.TweakSort.Apply(CreateClassFile((SortTweakList, CallsSort: true)));
         byte[] patched = result.Bytes ?? throw new InvalidOperationException(result.ToString());
 
-        MemberReference invoked = GetInvokedMethod(patched, SortTweakList);
-
         Assert.Equal(expected: 1, result.RedirectedInvocations);
-        Assert.Equal(JavaClasses.Legacyforgepatcher.Collections.Name, invoked.Owner);
-        Assert.Equal(expected: "sort", invoked.Name);
-        Assert.Equal(SortDescriptor, invoked.Descriptor);
+        ClassFileAssert.Calls(patched, SortTweakList, JavaClasses.Legacyforgepatcher.Collections.Name, name: "sort", SortDescriptor);
+        ClassFileAssert.DoesNotCall(patched, SortTweakList, owner: "java/util/Collections", name: "sort", SortDescriptor);
     }
 
     /// <summary>Bytes that aren't a class file are skipped with a reason and never throw into the JVM.</summary>
@@ -97,14 +93,5 @@ public sealed class TweakSortPatchTests
         }
 
         return writer.ToArray();
-    }
-
-    private static MemberReference GetInvokedMethod(byte[] classFile, string method)
-    {
-        JavaClassFile file = JavaClassFile.Read(classFile);
-        CodeAttribute code = file.FindMethod(method)?.Code ?? throw new InvalidOperationException($"{method} has no code.");
-        Instruction invocation = Assert.Single(code.Instructions, static instruction => instruction.Opcode is InvokeStatic);
-
-        return file.GetMemberReference(invocation.ConstantIndex ?? throw new InvalidOperationException(message: "The invocation has no constant."));
     }
 }

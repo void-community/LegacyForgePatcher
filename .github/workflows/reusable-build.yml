@@ -25,11 +25,6 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.402
-      # The build compiles the agent's Java helper with javac, which needs a JDK 9 or later.
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
-        with:
-          distribution: temurin
-          java-version: 21
       - name: Build and run unit tests
         run: |
           dotnet build LegacyForgePatcher.slnx -c Release
@@ -55,11 +50,6 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.402
-      # The build compiles the agent's Java helper with javac, which needs a JDK 9 or later.
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
-        with:
-          distribution: temurin
-          java-version: 21
       - name: Prepare Linux native toolchain
         run: sudo apt-get update -qq && sudo apt-get install -y clang zlib1g-dev
       - name: Publish the native agent
