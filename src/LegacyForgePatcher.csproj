@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="JvmBridge" />
+    <JavaSource Include="java/**/*.java" />
     <InternalsVisibleTo Include="LegacyForgePatcher.Tests" />
   </ItemGroup>
 </Project>

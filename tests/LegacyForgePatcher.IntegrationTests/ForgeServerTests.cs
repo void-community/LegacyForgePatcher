@@ -1,6 +1,8 @@
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 
+using JvmBridge.Testing;
+
 using Xunit;
 
 namespace LegacyForgePatcher.IntegrationTests;
@@ -19,7 +21,7 @@ public sealed class ForgeServerTests
     [Fact]
     public async Task Forge172ServerStartsWithAgent()
     {
-        string agent = NativeAgent.GetPath();
+        PublishedAgent agent = PublishedAgent.Find(name: "LegacyForgePatcher");
 
         using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
 
@@ -30,8 +32,8 @@ public sealed class ForgeServerTests
             .WithEnvironment(name: "TYPE", value: "FORGE")
             .WithEnvironment(name: "VERSION", value: "1.7.2")
             .WithEnvironment(name: "MEMORY", value: "1G")
-            .WithEnvironment(name: "JVM_OPTS", $"-agentpath:{AgentDirectory}{NativeAgent.FileName}")
-            .WithResourceMapping(new FileInfo(agent), AgentDirectory)
+            .WithEnvironment(name: "JVM_OPTS", $"-agentpath:{AgentDirectory}{Path.GetFileName(agent.FilePath)}")
+            .WithResourceMapping(new FileInfo(agent.FilePath), AgentDirectory)
             .Build();
 
         await server.StartAsync(timeout.Token);

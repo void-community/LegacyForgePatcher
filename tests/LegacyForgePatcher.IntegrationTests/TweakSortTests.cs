@@ -1,3 +1,5 @@
+using JvmBridge.Testing;
+
 using Xunit;
 
 namespace LegacyForgePatcher.IntegrationTests;
@@ -8,20 +10,23 @@ public sealed class TweakSortTests
     private const string MainClass = "cpw.mods.fml.relauncher.CoreModManager";
 
     /// <summary>The fixture throws without the agent and completes its iteration with it.</summary>
-    [Fact]
-    public async Task AgentLetsFixtureSortTweakersWhileIteratingThem()
+    [Theory]
+    [JdkData(8)]
+    public async Task AgentLetsFixtureSortTweakersWhileIteratingThem(Jdk jdk)
     {
-        string agent = NativeAgent.GetPath();
+        ArgumentNullException.ThrowIfNull(jdk);
+
+        PublishedAgent agent = PublishedAgent.Find(name: "LegacyForgePatcher");
 
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-        string classPath = await Jdk.CompileFixturesAsync(cancellationToken);
-        JdkResult unpatched = await Jdk.RunAsync(tool: "java", ["-cp", classPath, MainClass], cancellationToken);
+        string classPath = await jdk.CompileAsync(sources: "Fixtures/**/*.java", cancellationToken: cancellationToken);
+        JavaRun unpatched = await jdk.RunAsync(MainClass, classPath, cancellationToken: cancellationToken);
 
         // The JVM must count a sort as a structural change, as Java from 8u20 does, for the agent to have anything to fix.
         Assert.NotEqual(expected: 0, unpatched.ExitCode);
         Assert.Contains(expectedSubstring: "java.util.ConcurrentModificationException", unpatched.Output, StringComparison.Ordinal);
 
-        JdkResult patched = await Jdk.RunAsync(tool: "java", [$"-agentpath:{agent}", "-cp", classPath, MainClass], cancellationToken);
+        JavaRun patched = await jdk.RunAsync(MainClass, classPath, agent, cancellationToken: cancellationToken);
 
         Assert.True(patched.ExitCode is 0, patched.Output);
         Assert.Contains(

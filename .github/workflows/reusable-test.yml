@@ -45,7 +45,10 @@ jobs:
           name: agent-${{ matrix.rid }}
           path: artifacts/agent
       - name: Run the published agent in Java 8 and a Forge server
-        run: dotnet test tests/LegacyForgePatcher.IntegrationTests -c Release --logger trx --results-directory "artifacts/results/$TARGET_RID"
+        run: |
+          # JvmBridge.Testing would otherwise download its own Java 8; use the one set up above.
+          export JVMBRIDGE_JDK_8="$JAVA_HOME"
+          dotnet test tests/LegacyForgePatcher.IntegrationTests -c Release --logger trx --results-directory "artifacts/results/$TARGET_RID"
       - name: Upload runtime evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

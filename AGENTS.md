@@ -4,7 +4,7 @@ LegacyForgePatcher is a NativeAOT JVM agent, written in C# with JvmBridge, that 
 
 ## Layout
 
-- `src`: the agent and its class file reading and writing.
+- `src`: the agent, its declarative class patch and the Java helper that patch calls.
 - `tests/LegacyForgePatcher.Tests`: xUnit unit tests of class file patching, referencing the agent project.
 - `tests/LegacyForgePatcher.IntegrationTests`: xUnit tests that load the published agent into real JVMs, against Java fixtures and real Forge servers.
 - `.github`: reusable CI, GitHub releases, dependency maintenance, and repository templates.
@@ -18,14 +18,13 @@ Don't add `global.json`, NuGet lock files, or other .NET JSON configuration. CI 
 ## Native correctness
 
 - Keep every agent callback non-throwing in effect: patch only classes whose bytes match the expected upstream shape, and leave anything else unchanged.
-- Generated classes must load on Java 6 and later; prefer straight-line code, which needs no stack map frames.
-- Class files store modified UTF-8 without JNI's zero terminator.
-- Never call ordinary JNI from Agent_OnLoad. Define classes from `OnVmInit` or later.
-- Keep the agent free of host requirements such as libicu: JVM hosts are often slim images.
+- The Java helper compiles with `javac --release 8`, the earliest Java with the behavior this agent fixes, so it need not load on anything older.
+- Register patches and helpers from `Configure`. Ordinary JNI must not run in Agent_OnLoad, and JvmBridge defines helpers at VM initialization.
+- Keep the agent free of host requirements such as libicu: JVM hosts are often slim images. Log through `AgentContext.Log`, not `Console`.
 
 ## Verification
 
-Install the .NET 10 SDK, Clang and zlib development headers. Run `dotnet build LegacyForgePatcher.slnx -c Release` and `dotnet test LegacyForgePatcher.slnx -c Release --no-build`, which skips the native tests. Publish the agent with `dotnet publish src -c Release -r <RID> -o artifacts/agent/<RID>`, then run `dotnet test tests/LegacyForgePatcher.IntegrationTests -c Release` with `TARGET_RID=<RID>` and `JAVA_HOME` set to a Java 8 JDK. The Forge server test needs Docker. Record which platforms and Java versions actually executed.
+Install the .NET 10 SDK, a JDK 9 or later for the build, Clang and zlib development headers. The build compiles the Java helper with the JDK in `JvmBridgeJdkHome` or `JAVA_HOME`. Run `dotnet build LegacyForgePatcher.slnx -c Release` and `dotnet test LegacyForgePatcher.slnx -c Release --no-build`, which skips the native tests. Publish the agent with `dotnet publish src -c Release -r <RID> -o artifacts/agent/<RID>`, then run `dotnet test tests/LegacyForgePatcher.IntegrationTests -c Release` with `TARGET_RID=<RID>`. JvmBridge.Testing downloads a checksum-pinned Java 8 JDK, or uses the one `JVMBRIDGE_JDK_8` names. The Forge server test needs Docker. Record which platforms and Java versions actually executed.
 
 CI must account for every configured platform. Never weaken tests or skip source, build or workflow changes to get green checks.
 

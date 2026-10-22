@@ -45,7 +45,7 @@ docker run -d -e EULA=TRUE -e TYPE=FORGE -e VERSION=1.7.2 \
 ✅ The game's log confirms the fix:
 
 ```text
-LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager to sort tweakers without disturbing their iteration
+LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager (sortTweakList()V: 1 invocation of java/util/Collections.sort redirected)
 ```
 
 ## 📦 Compatibility
