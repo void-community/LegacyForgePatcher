@@ -15,6 +15,7 @@
   ],
   "packageRules": [
     {"description": "JvmBridge.Testing requires at least the same JvmBridge version, so the two update together", "matchPackageNames": ["JvmBridge", "JvmBridge.Testing"], "groupName": "JvmBridge"},
+    {"description": "Forge for Minecraft 1.7 runs on Java 8 only, and the test job hands its JDK to the Java 8 tests, so it stays on Java 8", "matchDepNames": ["java-jdk"], "matchUpdateTypes": ["major"], "enabled": false},
     {"matchUpdateTypes": ["minor", "patch", "pin", "digest"], "automerge": true},
     {"matchUpdateTypes": ["major"], "automerge": false}
   ]
