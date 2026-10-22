@@ -23,7 +23,8 @@ jobs:
           - rid: linux-arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    # Each platform installs and starts every Forge server of the tests, one at a time, which takes about 25 minutes.
+    timeout-minutes: 60
     env:
       TARGET_RID: ${{ matrix.rid }}
       Version: ${{ inputs.version }}
