@@ -1,6 +1,6 @@
 # Repository guidelines
 
-LegacyForgePatcher is a NativeAOT JVM agent, written in C# with JvmBridge, that fixes Forge servers and clients where Forge's own code breaks: on current Java, as Forge 1.7.2's launch does, under load, as the logins of Forge 1.12 and of Forge 1.13 to 1.20.1 do, when a proxy moves a Forge 1.12 client to another server, or when the loading window of a Forge or NeoForge client from 1.20.1 reads FML's config while FML loads it again. Each fix targets the exact upstream code it repairs and leaves every other class unchanged.
+LegacyForgePatcher is a NativeAOT JVM agent, written in C# with JvmBridge, that fixes Forge servers and clients where Forge's own code breaks: on current Java, as Forge 1.7.2's launch does, under load, as the logins of Forge 1.12 and of Forge 1.13 to 1.20.1 do, when a proxy moves a Forge 1.12 client to another server, when the loading window of a Forge or NeoForge client from 1.20.1 reads FML's config while FML loads it again, or when mods fill Forge's object holder registry from several threads at once. Each fix targets the exact upstream code it repairs and leaves every other class unchanged.
 
 ## Layout
 

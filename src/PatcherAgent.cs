@@ -7,7 +7,7 @@ namespace LegacyForgePatcher;
 /// Repairs Forge where its own code breaks: the tweaker sort that stops Forge for Minecraft 1.7.2 on Java 8u20 and later, the connection state switch that drops
 /// players at login on Forge for Minecraft 1.12, the registry rebuilds that crash Forge for 1.12 and 1.12.1 clients when a proxy moves them to another server, and
 /// the list of handshake messages that drops players at login on Forge for 1.13 to 1.20.1, and the second load of FML's config that crashes Forge and NeoForge
-/// clients at startup from 1.20.1.
+/// clients at startup from 1.20.1, and the set of object holder handlers that mods fill from several threads in Forge from 1.13.2.
 /// </summary>
 public sealed class PatcherAgent : JavaAgent
 {
@@ -92,5 +92,7 @@ public sealed class PatcherAgent : JavaAgent
 
         foreach (ClassPatch patch in ModLoaderConfigurationLoad.Patches)
             context.Patch(patch);
+
+        context.Patch(ObjectHolderHandlers.Patch);
     }
 }

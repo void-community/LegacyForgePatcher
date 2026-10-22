@@ -66,6 +66,11 @@ public sealed class ModernForgeServerTests
 
         ForgeServer.AssertLogged(logs, expected: "HandshakeHandler (<init>: sentMessages created as a CopyOnWriteArrayList (1 change))");
         ForgeServer.AssertNotLogged(logs, unexpected: "ConcurrentModificationException");
+        // Mod loading fills ObjectHolderRegistry's handlers on these servers too, from the same worker threads as on clients.
+        ForgeServer.AssertLogged(
+            logs,
+            expected: "LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: objectHolders created as a ConcurrentHashMap key set (1 change))"
+        );
         // The client reports a login that skipped FML's handshake separately, so this also says every player went through it.
         Assert.True(logins.ExitCode is 0, logins.Stdout + logins.Stderr);
         Assert.Contains(expectedSubstring: "LOGINS {logged in=200}", logins.Stdout, StringComparison.Ordinal);
