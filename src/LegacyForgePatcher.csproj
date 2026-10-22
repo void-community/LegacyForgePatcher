@@ -7,7 +7,7 @@
     <!-- Publishing also writes LegacyForgePatcher.jar beside the library, a jar for java -javaagent that holds the library of the published platform. -->
     <JvmBridgeAgentJar>true</JvmBridgeAgentJar>
     <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
-    <Description>A native JVM agent that fixes legacy Forge: Forge for Minecraft 1.7.2 on Java 8u20 and later, and Forge for Minecraft 1.12 dropping players at login.</Description>
+    <Description>A native JVM agent that fixes Forge servers and clients where Forge's own code breaks.</Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="JvmBridge" />

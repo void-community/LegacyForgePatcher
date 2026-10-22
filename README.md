@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/void-community/LegacyForgePatcher?style=for-the-badge)](https://github.com/void-community/LegacyForgePatcher/releases/latest)
 [![License](https://img.shields.io/github/license/void-community/LegacyForgePatcher?style=for-the-badge)](LICENSE)
 
-**Fix legacy Forge servers that break on current Java or under load.** ☕
+**Fix Forge servers and clients that break on current Java, under load or behind a proxy.** ☕
 
 LegacyForgePatcher is a native Java agent that repairs these while the game loads. It changes no game or Forge files and needs no .NET installation. ✨
 
@@ -25,6 +25,18 @@ java.util.ConcurrentModificationException
 
 ```text
 [Server thread/INFO] [minecraft/NetHandlerPlayServer]: Player lost connection: Internal Exception: io.netty.handler.codec.EncoderException: java.io.IOException: Can't serialize unregistered packet
+```
+
+**Forge for Minecraft 1.12 and 1.12.1 clients crash when a proxy such as BungeeCord or Void moves them to another server:**
+
+```text
+[Netty Epoll Client IO #1] [INFO] Injecting existing registry data into this client instance
+[main] [FATAL] net.minecraft.util.ReportedException: Ticking entity
+	at net.minecraft.world.World.func_72939_s(World.java:1766)
+	at net.minecraft.client.Minecraft.func_71407_l(Minecraft.java:1841)
+Caused by: java.lang.NullPointerException
+	at net.minecraft.entity.player.EntityPlayer.func_192028_j(EntityPlayer.java:589)
+	at net.minecraft.entity.player.EntityPlayer.func_70636_d(EntityPlayer.java:574)
 ```
 
 ## 🚀 Usage
@@ -50,21 +62,22 @@ docker run -d -e EULA=TRUE -e TYPE=FORGE -e VERSION=1.12.2 \
   itzg/minecraft-server:java8
 ```
 
-✅ The game's log confirms each fix when Forge loads the code it repairs; on Forge 1.12 that is at the first login:
+✅ The game's log confirms each fix when Forge loads the code it repairs; on Forge 1.12 that is at the first connection:
 
 ```text
 LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager (sortTweakList()V: 1 invocation of java/util/Collections.sort redirected)
 LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/NetworkDispatcher (serverInitiateHandshake()I: 1 invocation of net/minecraft/network/NetworkManager.func_150723_a redirected)
+LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/FMLHandshakeClientState$4 (accept: 1 invocation of net/minecraftforge/registries/GameData.injectSnapshot redirected)
+LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/FMLHandshakeClientState$7 (accept: 1 invocation of net/minecraftforge/registries/GameData.revertToFrozen redirected)
 ```
 
 ## 📦 Compatibility
 
-| Minecraft | Forge         | Fix                                    |
-|-----------|---------------|----------------------------------------|
-| 1.7.2     | 10.12.2.1161  | Launches on Java 8u20 and later        |
-| 1.12      | 14.21.1.2387  | Keeps players that log in under load   |
-| 1.12.1    | 14.22.1.2478  | Keeps players that log in under load   |
-| 1.12.2    | 14.23.5.2859  | Keeps players that log in under load   |
+| Fix                                   | Side   | Minecraft             | Forge                                      |
+|---------------------------------------|--------|-----------------------|--------------------------------------------|
+| Launches on Java 8u20 and later       | Server | 1.7.2                 | 10.12.2.1161                               |
+| Keeps players that log in under load  | Server | 1.12, 1.12.1, 1.12.2  | 14.21.1.2387, 14.22.1.2478, 14.23.5.2859   |
+| Survives a proxy's server switch      | Client | 1.12, 1.12.1          | 14.21.1.2387, 14.22.1.2478                 |
 
 | Platform    | `-javaagent` jar         | `-agentpath` library                |
 |-------------|--------------------------|-------------------------------------|
@@ -73,7 +86,7 @@ LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/Netw
 
 The jar unpacks the library of its platform into a temporary directory when the JVM starts. To load the library directly, pass the `.so` of your platform to `-agentpath` with an absolute path.
 
-For every commit, CI starts these Forge servers on Java 8 in itzg/minecraft-server with the agent on both platforms: Forge 1.7.2 once with the jar and once with the `.so`, and each Forge 1.12 build with the jar and 200 players logging in at once. The agent leaves a game alone when its Forge doesn't have the code a fix targets; Forge for Minecraft 1.6.4, for example, starts on Java 8 without it.
+For every commit, CI starts these Forge servers on Java 8 in itzg/minecraft-server with the agent on both platforms: Forge 1.7.2 once with the jar and once with the `.so`, and each Forge 1.12 build with the jar and 200 players logging in at once. The client fix runs against a fixture that drives FML's handshake as those Forge builds do, under the JVM's strictest verifier; Forge for 1.12.2 makes the same change itself, so the agent leaves its client alone. The agent leaves a game alone when its Forge doesn't have the code a fix targets; Forge for Minecraft 1.6.4, for example, starts on Java 8 without it.
 
 ## 📄 License
 
