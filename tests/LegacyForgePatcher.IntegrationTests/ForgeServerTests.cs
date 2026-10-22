@@ -30,7 +30,7 @@ public sealed class ForgeServerTests
     [Fact]
     public async Task Forge172ServerStartsWithJavaAgentJar()
     {
-        await AssertServerStartsAsync(option: "-javaagent:", new FileInfo(AgentJar.Find()));
+        await AssertServerStartsAsync(option: "-javaagent:", new FileInfo(PublishedAgent.FindJar(name: "LegacyForgePatcher").FilePath));
     }
 
     private static async Task AssertServerStartsAsync(string option, FileInfo agent)

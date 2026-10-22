@@ -4,8 +4,8 @@
   </PropertyGroup>
   <ItemGroup>
     <GlobalPackageReference Include="NetAgents.Analyzers" Version="26.10.19.3743" />
-    <PackageVersion Include="JvmBridge" Version="26.10.22.4199" />
-    <PackageVersion Include="JvmBridge.Testing" Version="26.10.22.4199" />
+    <PackageVersion Include="JvmBridge" Version="26.10.22.4562" />
+    <PackageVersion Include="JvmBridge.Testing" Version="26.10.22.4562" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="Testcontainers" Version="4.16.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />

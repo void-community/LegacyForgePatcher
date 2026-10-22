@@ -52,12 +52,17 @@ jobs:
           dotnet-version: 10.0.402
       - name: Prepare Linux native toolchain
         run: sudo apt-get update -qq && sudo apt-get install -y clang zlib1g-dev
-      - name: Publish the native agent
+      - name: Publish the native agent and its jar
         run: dotnet publish src -c Release -r "$TARGET_RID" -o "artifacts/agent/$TARGET_RID"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: agent-${{ matrix.rid }}
           path: artifacts/agent/*/LegacyForgePatcher.so
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: jar-${{ matrix.rid }}
+          path: artifacts/agent/*/LegacyForgePatcher.jar
           if-no-files-found: error
   jar:
     needs: agent
@@ -71,18 +76,12 @@ jobs:
           dotnet-version: 10.0.402
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          pattern: agent-*
+          pattern: jar-*
           path: artifacts/agent
           merge-multiple: true
-      # The jar holds the library of every platform, so one file serves java -javaagent anywhere. The tests and the release use this very file.
-      - name: Pack the agents into one jar
-        run: |
-          dotnet tool install JvmBridge.Tool --version 26.10.22.4199 --tool-path "$RUNNER_TEMP/tools"
-          agents=()
-          for library in artifacts/agent/*/LegacyForgePatcher.so; do
-            agents+=(--agent "$(basename "$(dirname "$library")")=$library")
-          done
-          "$RUNNER_TEMP/tools/jvmbridge" pack -o artifacts/jar/LegacyForgePatcher.jar "${agents[@]}"
+      # The combined jar holds the library of every platform, so one file serves java -javaagent anywhere. The tests and the release use this very file.
+      - name: Combine the jars of the platforms into one
+        run: dotnet msbuild src/LegacyForgePatcher.csproj -restore -t:JvmBridgeMergeAgentJars -p:JvmBridgeAgentJars="../artifacts/agent/*/LegacyForgePatcher.jar" -p:JvmBridgeAgentJarOutput=../artifacts/jar/LegacyForgePatcher.jar
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: jar

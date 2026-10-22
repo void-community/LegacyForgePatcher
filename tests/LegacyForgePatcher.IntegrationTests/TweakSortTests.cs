@@ -38,15 +38,11 @@ public sealed class TweakSortTests
     {
         ArgumentNullException.ThrowIfNull(jdk);
 
-        string jar = AgentJar.Find();
+        PublishedAgent jar = PublishedAgent.FindJar(name: "LegacyForgePatcher");
 
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         string classPath = await jdk.CompileAsync(sources: "Fixtures/**/*.java", cancellationToken: cancellationToken);
-        JavaRunOptions options = new();
-
-        options.JvmArguments.Add("-javaagent:" + jar);
-
-        JavaRun patched = await jdk.RunAsync(MainClass, classPath, options: options, cancellationToken: cancellationToken);
+        JavaRun patched = await jdk.RunAsync(MainClass, classPath, jar, cancellationToken: cancellationToken);
 
         AssertPatched(patched);
     }
