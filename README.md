@@ -55,6 +55,8 @@ java.lang.ClassCastException: class java.util.HashMap$Node cannot be cast to cla
 [Render thread] [WARN] Client disconnected with reason: Internal Exception: io.netty.handler.codec.EncoderException: Pipeline has no outbound protocol configured, can't process packet ServerboundChunkBatchReceivedPacket
 ```
 
+**Forge for Minecraft 1.14.2 and 1.14.3 clients sometimes hang at startup and never reach their menu.** A thread dump shows the client thread waiting for EventBus's lock in `EventListenerHelper.getListenerListInternal` while a `modloading-worker` thread holds it and waits for the client thread to finish initializing `TickEvent`.
+
 **Forge for Minecraft 1.12 and 1.12.1 clients crash when a proxy such as BungeeCord or Void moves them to another server:**
 
 ```text
@@ -101,6 +103,7 @@ LegacyForgePatcher: patched net/minecraftforge/network/HandshakeHandler (<init>:
 LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (load()V: 1 invocation of net/minecraftforge/fml/loading/FMLConfig.loadFrom redirected)
 LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: objectHolders created as a ConcurrentHashMap key set (1 change))
 LegacyForgePatcher: patched net/minecraft/client/multiplayer/ClientPacketListener (handleChunkBatchFinished(Lnet/minecraft/network/protocol/game/ClientboundChunkBatchFinishedPacket;)V: 1 invocation of net/minecraft/client/multiplayer/ClientPacketListener.send redirected)
+LegacyForgePatcher: patched net/minecraftforge/eventbus/api/EventListenerHelper (getListenerListInternal(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: listener list built outside the lock (1 change))
 ```
 
 ## 📦 Compatibility
@@ -114,6 +117,7 @@ LegacyForgePatcher: patched net/minecraft/client/multiplayer/ClientPacketListene
 | Opens the game's window at startup    | Client | 1.20.1 to 1.21.4      | 47.4.28, 48.1.0, 49.2.0, 50.2.0, 52.1.0, 54.1.0; NeoForge 20.2 to 21.4 (FancyModLoader 1.0 to 6.0) |
 | Loads mods without breaking the object holder registry | Client and server | 1.13.2 to 1.21.4 | 25.0.223, 28.2.26, 29.0.4, 31.2.57, 36.2.39, 37.1.1, 40.2.0, 43.5.0, 47.4.28, 49.2.0, 54.1.0; NeoForge 47.1.106 |
 | Keeps the connection when the first chunks arrive early | Client | 1.20.6 to 26.3 | Forge and NeoForge from 1.20.6, which run Minecraft with Mojang's names; vanilla Minecraft 26.1 to 26.3 |
+| Starts without deadlocking in EventBus | Client | 1.14.2, 1.14.3 | 26.0.0 to 27.0.60 (EventBus 0.9.3 to 0.10.4) |
 
 | Platform    | `-javaagent` jar         | `-agentpath` library                |
 |-------------|--------------------------|-------------------------------------|
@@ -124,7 +128,7 @@ The agent needs glibc 2.34 or later, as on Ubuntu 22.04, Debian 12 and RHEL 9. i
 
 The jar unpacks the library of its platform into a temporary directory when the JVM starts. To load the library directly, pass the `.so` of your platform to `-agentpath` with an absolute path.
 
-For every commit, CI starts these Forge servers on Java 8 in itzg/minecraft-server with the agent on both platforms: Forge 1.7.2 once with the jar and once with the `.so`, each Forge 1.12 build with the jar and 200 players logging in at once, and each Forge build from 1.13.2 to 1.20.1, and NeoForge for 1.20.1, with the jar and 200 players logging in at once through FML's handshake. Forge 1.19.4, 1.20.2 and 1.21.4, and NeoForge 20.4.253 and 21.4.161, start with the agent loading FML's config; the loading window that crashes only exists on clients, so that fix runs against a fixture of FML's two loads, on Java 17 and 21. The Forge servers from 1.13.2 load mods through the patched object holder registry, and a fixture has threads add its handlers at once, on Java 8 and 17. The chunk batch fix runs against a fixture of a client finishing configuration while its network thread answers a chunk batch, on Java 21 and 25; vanilla Minecraft before 26.1 is obfuscated, with names that change in every release, so the agent leaves it alone. The client fix runs against a fixture that drives FML's handshake as those Forge builds do, under the JVM's strictest verifier; Forge for 1.12.2 makes the same change itself, so the agent leaves its client alone. The agent leaves a game alone when its Forge doesn't have the code a fix targets; Forge for Minecraft 1.6.4, for example, starts on Java 8 without it.
+For every commit, CI starts these Forge servers on Java 8 in itzg/minecraft-server with the agent on both platforms: Forge 1.7.2 once with the jar and once with the `.so`, each Forge 1.12 build with the jar and 200 players logging in at once, and each Forge build from 1.13.2 to 1.20.1, and NeoForge for 1.20.1, with the jar and 200 players logging in at once through FML's handshake. Forge 1.19.4, 1.20.2 and 1.21.4, and NeoForge 20.4.253 and 21.4.161, start with the agent loading FML's config; the loading window that crashes only exists on clients, so that fix runs against a fixture of FML's two loads, on Java 17 and 21. The Forge servers from 1.13.2 load mods through the patched object holder registry, and a fixture has threads add its handlers at once, on Java 8 and 17. The chunk batch fix runs against a fixture of a client finishing configuration while its network thread answers a chunk batch, on Java 21 and 25; vanilla Minecraft before 26.1 is obfuscated, with names that change in every release, so the agent leaves it alone. Forge 1.14.2 (26.0.63) and 1.14.3 (27.0.60) servers load their mods through the patched EventBus, and fixtures of both EventBus shapes deadlock without the agent and start with it, on Java 8. The client fix runs against a fixture that drives FML's handshake as those Forge builds do, under the JVM's strictest verifier; Forge for 1.12.2 makes the same change itself, so the agent leaves its client alone. The agent leaves a game alone when its Forge doesn't have the code a fix targets; Forge for Minecraft 1.6.4, for example, starts on Java 8 without it.
 
 ## 📄 License
 

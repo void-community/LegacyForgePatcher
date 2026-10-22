@@ -8,7 +8,8 @@ namespace LegacyForgePatcher;
 /// players at login on Forge for Minecraft 1.12, the registry rebuilds that crash Forge for 1.12 and 1.12.1 clients when a proxy moves them to another server, and
 /// the list of handshake messages that drops players at login on Forge for 1.13 to 1.20.1, and the second load of FML's config that crashes Forge and NeoForge
 /// clients at startup from 1.20.1, the set of object holder handlers that mods fill from several threads in Forge from 1.13.2, and the chunk batch answer that drops
-/// Minecraft clients from 1.20.5 when it arrives before play is set up.
+/// Minecraft clients from 1.20.5 when it arrives before play is set up, and the listener lists that EventBus builds under its lock and deadlocks Forge 1.14.2 and
+/// 1.14.3 clients with.
 /// </summary>
 public sealed class PatcherAgent : JavaAgent
 {
@@ -100,6 +101,9 @@ public sealed class PatcherAgent : JavaAgent
         context.DefineClass(JavaClasses.Legacyforgepatcher.ClientThread, ClassLoaderTarget.Bootstrap);
         context.DefineClass(JavaClasses.Legacyforgepatcher.ModLoaderConfigs, ClassLoaderTarget.Bootstrap);
         context.DefineClass(JavaClasses.Legacyforgepatcher.ClientPackets, ClassLoaderTarget.Bootstrap);
+        context.DefineClass(JavaClasses.Legacyforgepatcher.EventListeners, ClassLoaderTarget.Bootstrap);
+        // EventBus calls this one by the descriptor of its own ListenerList, which only its loader can resolve.
+        context.DefineClass(EventListenerLists.Definition, ClassLoaderTarget.PatchedClassLoader);
         // Forge's handshake calls this one by the descriptor of a Guava type, which only Forge's loader can resolve.
         context.DefineClass(RegistrySnapshots.Definition, ClassLoaderTarget.PatchedClassLoader);
         context.Patch(TweakSort);
@@ -115,5 +119,6 @@ public sealed class PatcherAgent : JavaAgent
 
         context.Patch(ObjectHolderHandlers.Patch);
         context.Patch(ChunkBatchAnswer);
+        context.Patch(EventListenerLists.Patch);
     }
 }
