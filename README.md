@@ -9,9 +9,12 @@
 Forge for Minecraft 1.7.2 stops before Minecraft loads on current Java 8 releases:
 
 ```text
+[main/INFO] [LaunchWrapper]: Calling tweak class cpw.mods.fml.common.launcher.FMLInjectionAndSortingTweaker
 [main/ERROR] [LaunchWrapper]: Unable to launch
 java.util.ConcurrentModificationException
 	at java.util.ArrayList$Itr.checkForComodification(ArrayList.java:911) ~[?:1.8.0_504]
+	at java.util.ArrayList$Itr.remove(ArrayList.java:875) ~[?:1.8.0_504]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:117) [launchwrapper-1.9.jar:?]
 ```
 
 LegacyForgePatcher is a native Java agent that fixes this while the game loads. It changes no game or Forge files and needs no .NET installation. ✨
