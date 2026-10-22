@@ -30,22 +30,11 @@ public sealed class PatcherAgent : JavaAgent
     /// loop encodes them in the play state, which has no id for them, and the player is dropped with <c>Can't serialize unregistered packet</c>.
     /// </summary>
     internal static readonly ClassPatch HandshakeState = ClassPatch.For(className: "net/minecraftforge/fml/common/network/handshake/NetworkDispatcher")
-        .Edit(
-            static editor =>
-            {
-                // The helper takes Object parameters because the bootstrap loader that defines it can't see Minecraft's classes.
-                int redirected = editor.ReplaceInvocation(
-                    SetConnectionState,
-                    toOwner: "legacyforgepatcher/ConnectionStates",
-                    toName: "setConnectionState",
-                    toDescriptor: "(Ljava/lang/Object;Ljava/lang/Object;)V",
-                    methodName: "serverInitiateHandshake",
-                    methodDescriptor: "()I"
-                );
-
-                if (redirected != 1)
-                    throw new InvalidOperationException($"serverInitiateHandshake()I calls {SetConnectionState.Owner}.{SetConnectionState.Name} {redirected} times instead of once");
-            }
+        .Method(name: "serverInitiateHandshake", descriptor: "()I")
+        .RedirectInvocation(
+            SetConnectionState,
+            // The helper takes Object parameters because the bootstrap loader that defines it can't see Minecraft's classes.
+            JavaMethod.Static(owner: "legacyforgepatcher/ConnectionStates", name: "setConnectionState", descriptor: "(Ljava/lang/Object;Ljava/lang/Object;)V")
         );
 
     /// <inheritdoc/>

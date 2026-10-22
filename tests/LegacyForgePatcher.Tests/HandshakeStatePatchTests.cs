@@ -37,17 +37,17 @@ public sealed class HandshakeStatePatchTests
 
         Assert.False(result.Changed);
         Assert.Null(result.Bytes);
-        Assert.Contains(expectedSubstring: "0 times instead of once", result.SkippedReason, StringComparison.Ordinal);
+        Assert.Contains("no invocation of " + PatcherAgent.SetConnectionState.Owner, result.SkippedReason, StringComparison.Ordinal);
     }
 
-    /// <summary>A handshake that switches more than once isn't the code this fix was written for, so the class is left alone.</summary>
+    /// <summary>A NetworkDispatcher without <c>serverInitiateHandshake</c>, as in Forge versions that start the handshake differently, is left alone with a reason.</summary>
     [Fact]
-    public void PatchLeavesHandshakesThatSwitchMoreThanOnce()
+    public void PatchLeavesClassesWithoutServerInitiateHandshake()
     {
-        ClassPatchResult result = PatcherAgent.HandshakeState.Apply(CreateClassFile((ServerInitiateHandshake, Switches: 2)));
+        ClassPatchResult result = PatcherAgent.HandshakeState.Apply(CreateClassFile((Name: "clientListenForServerHandshake", Switches: 1)));
 
         Assert.False(result.Changed);
-        Assert.Contains(expectedSubstring: "2 times instead of once", result.SkippedReason, StringComparison.Ordinal);
+        Assert.Contains(ServerInitiateHandshake, result.SkippedReason, StringComparison.Ordinal);
     }
 
     /// <summary>NetworkDispatcher switches the state in another method too, on the client side, and that switch stays as it was.</summary>
@@ -66,13 +66,14 @@ public sealed class HandshakeStatePatchTests
         );
     }
 
-    /// <summary>The switch in <c>serverInitiateHandshake</c> now goes to the helper, with the manager and the state as its arguments.</summary>
+    /// <summary>The switch in <c>serverInitiateHandshake</c> now goes to the helper, with the manager and the state as its arguments, and the result says it was the only call redirected.</summary>
     [Fact]
     public void PatchRedirectsTheSwitchInServerInitiateHandshake()
     {
         ClassPatchResult result = PatcherAgent.HandshakeState.Apply(CreateClassFile((ServerInitiateHandshake, Switches: 1)));
         byte[] patched = result.Bytes ?? throw new InvalidOperationException(result.ToString());
 
+        Assert.Equal(expected: 1, result.RedirectedInvocations);
         ClassFileAssert.Calls(patched, ServerInitiateHandshake, JavaClasses.Legacyforgepatcher.ConnectionStates.Name, HelperName, HelperDescriptor);
         ClassFileAssert.DoesNotCall(
             patched,

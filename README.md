@@ -54,7 +54,7 @@ docker run -d -e EULA=TRUE -e TYPE=FORGE -e VERSION=1.12.2 \
 
 ```text
 LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager (sortTweakList()V: 1 invocation of java/util/Collections.sort redirected)
-LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/NetworkDispatcher (custom edit applied)
+LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/NetworkDispatcher (serverInitiateHandshake()I: 1 invocation of net/minecraft/network/NetworkManager.func_150723_a redirected)
 ```
 
 ## 📦 Compatibility
