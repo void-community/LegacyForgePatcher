@@ -5,7 +5,8 @@ namespace LegacyForgePatcher;
 
 /// <summary>
 /// Repairs Forge where its own code breaks: the tweaker sort that stops Forge for Minecraft 1.7.2 on Java 8u20 and later, the connection state switch that drops
-/// players at login on Forge for Minecraft 1.12, and the registry rebuilds that crash Forge for 1.12 and 1.12.1 clients when a proxy moves them to another server.
+/// players at login on Forge for Minecraft 1.12, the registry rebuilds that crash Forge for 1.12 and 1.12.1 clients when a proxy moves them to another server, and
+/// the list of handshake messages that drops players at login on Forge for 1.13 to 1.20.1.
 /// </summary>
 public sealed class PatcherAgent : JavaAgent
 {
@@ -83,5 +84,8 @@ public sealed class PatcherAgent : JavaAgent
         context.Patch(HandshakeState);
         context.Patch(RegistryRevert);
         context.Patch(RegistryInjection);
+
+        foreach (ClassPatch patch in HandshakeSentMessages.Patches)
+            context.Patch(patch);
     }
 }

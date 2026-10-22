@@ -1,7 +1,5 @@
-using System.Globalization;
 using System.Runtime.CompilerServices;
 
-using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 
 using JvmBridge.Testing;
@@ -10,16 +8,12 @@ using Xunit;
 
 namespace LegacyForgePatcher.IntegrationTests;
 
-/// <summary>Real Forge servers, as itzg installs them, with the agent loaded.</summary>
+/// <summary>Real legacy Forge servers, as itzg installs them, with the agent loaded.</summary>
+[Collection(ForgeServer.Collection)]
 public sealed class ForgeServerTests
 {
-    private const string AgentDirectory = "/patcher/";
     // Renovate updates the image through the custom manager in .github/renovate.json.
     private const string Image = "itzg/minecraft-server:2026.10.0-java8";
-    private const string LoaderDirectory = "/loader/";
-    private const string ReadyLine = "Done (";
-
-    private static readonly TimeSpan StartTimeout = TimeSpan.FromMinutes(minutes: 10);
 
     /// <summary>The Forge 1.12 builds that drop players at login, the newest stable ones itzg picks, with the protocol version of their Minecraft.</summary>
     public static TheoryData<string, string, int> Forge112Builds { get; } = new()
@@ -41,36 +35,26 @@ public sealed class ForgeServerTests
 
         using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
 
-        timeout.CancelAfter(StartTimeout);
+        timeout.CancelAfter(ForgeServer.StartTimeout);
 
-        // The logins run inside the server's container, so they load its event loops without depending on the host's port forwarding.
-        string loader = await new Jdk(major: 8).CompileAsync(sources: "Fixtures/LoginLoad/**/*.java", cancellationToken: timeout.Token);
+        string loginLoad = await ForgeServer.CompileLoginLoadAsync(timeout.Token);
 
-        await using IContainer server = CreateServer(version, memory: "2G", option: "-javaagent:", agent)
+        await using IContainer server = ForgeServer.Create(Image, type: "FORGE", version, memory: "2G", option: "-javaagent:", agent)
             .WithEnvironment(name: "FORGE_VERSION", forgeVersion)
-            .WithEnvironment(name: "ONLINE_MODE", value: "FALSE")
-            .WithEnvironment(name: "MAX_PLAYERS", value: "1000")
-            .WithResourceMapping(new DirectoryInfo(loader), LoaderDirectory)
+            .WithLoginLoad(loginLoad)
             .Build();
 
-        string logs = await StartAsync(server, timeout.Token);
+        string logs = await ForgeServer.StartAsync(server, timeout.Token);
 
-        Assert.Contains(ReadyLine, logs, StringComparison.Ordinal);
+        ForgeServer.AssertLogged(logs, ForgeServer.ReadyLine);
 
         // Many logins at once keep the event loops busy, so the login packets are still queued when FML switches the state.
-        ExecResult logins = await server.ExecAsync(
-            ["java", "-cp", LoaderDirectory, "loginload.LoginLoad", "127.0.0.1", "25565", protocol.ToString(CultureInfo.InvariantCulture), "200", "40"],
-            timeout.Token
-        );
+        ExecResult logins = await ForgeServer.LogInPlayersAsync(server, protocol, fmlVersion: null, timeout.Token);
 
-        logs = await ReadLogsAsync(server, timeout.Token);
+        logs = await ForgeServer.ReadLogsAsync(server, timeout.Token);
 
-        Assert.Contains(
-            expectedSubstring: "LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/NetworkDispatcher",
-            logs,
-            StringComparison.Ordinal
-        );
-        Assert.DoesNotContain(expectedSubstring: "Can't serialize unregistered packet", logs, StringComparison.Ordinal);
+        ForgeServer.AssertLogged(logs, expected: "LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/NetworkDispatcher");
+        ForgeServer.AssertNotLogged(logs, unexpected: "Can't serialize unregistered packet");
         Assert.True(logins.ExitCode is 0, logins.Stdout + logins.Stderr);
         Assert.Contains(expectedSubstring: "LOGINS {logged in=200}", logins.Stdout, StringComparison.Ordinal);
     }
@@ -93,51 +77,16 @@ public sealed class ForgeServerTests
     {
         using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
 
-        timeout.CancelAfter(StartTimeout);
+        timeout.CancelAfter(ForgeServer.StartTimeout);
 
-        IContainer server = CreateServer(version: "1.7.2", memory: "1G", option, agent).Build();
+        IContainer server = ForgeServer.Create(Image, type: "FORGE", version: "1.7.2", memory: "1G", option, agent).Build();
 
         await using ConfiguredAsyncDisposable disposal = server.ConfigureAwait(continueOnCapturedContext: false);
 
-        string logs = await StartAsync(server, timeout.Token).ConfigureAwait(continueOnCapturedContext: false);
+        string logs = await ForgeServer.StartAsync(server, timeout.Token).ConfigureAwait(continueOnCapturedContext: false);
 
-        Assert.Contains(expectedSubstring: "LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager", logs, StringComparison.Ordinal);
-        Assert.DoesNotContain(expectedSubstring: "ConcurrentModificationException", logs, StringComparison.Ordinal);
-        Assert.Contains(ReadyLine, logs, StringComparison.Ordinal);
-    }
-
-    private static ContainerBuilder CreateServer(string version, string memory, string option, FileInfo agent)
-    {
-        return new ContainerBuilder(Image)
-            .WithEnvironment(name: "EULA", value: "TRUE")
-            .WithEnvironment(name: "TYPE", value: "FORGE")
-            .WithEnvironment(name: "VERSION", version)
-            .WithEnvironment(name: "MEMORY", memory)
-            .WithEnvironment(name: "JVM_OPTS", option + AgentDirectory + agent.Name)
-            .WithResourceMapping(agent, AgentDirectory);
-    }
-
-    private static async Task<string> ReadLogsAsync(IContainer container, CancellationToken cancellationToken)
-    {
-        (string standardOutput, string standardError) = await container.GetLogsAsync(ct: cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
-
-        return standardOutput + standardError;
-    }
-
-    // itzg installs Forge first, then the server either becomes ready or exits.
-    private static async Task<string> StartAsync(IContainer server, CancellationToken cancellationToken)
-    {
-        await server.StartAsync(cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
-
-        Task<long> exit = server.GetExitCodeAsync(cancellationToken);
-        string logs = await ReadLogsAsync(server, cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
-
-        while (!logs.Contains(ReadyLine, StringComparison.Ordinal) && !exit.IsCompleted)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(seconds: 2), cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
-            logs = await ReadLogsAsync(server, cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
-        }
-
-        return logs;
+        ForgeServer.AssertLogged(logs, expected: "LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager");
+        ForgeServer.AssertNotLogged(logs, unexpected: "ConcurrentModificationException");
+        ForgeServer.AssertLogged(logs, ForgeServer.ReadyLine);
     }
 }
