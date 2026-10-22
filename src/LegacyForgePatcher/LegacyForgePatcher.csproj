@@ -2,8 +2,6 @@
   <PropertyGroup>
     <JvmBridgeAgent>true</JvmBridgeAgent>
     <PublishAot>true</PublishAot>
-    <!-- JVM hosts such as slim server images often lack libicu, without which .NET ends the whole process. -->
-    <InvariantGlobalization>true</InvariantGlobalization>
     <!-- The .NET 11 SDK fails publishing a native library with its documentation file, which the agent doesn't need. -->
     <PublishDocumentationFile>false</PublishDocumentationFile>
     <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
