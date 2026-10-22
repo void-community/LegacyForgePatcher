@@ -1,0 +1,102 @@
+using JvmBridge.Agents;
+using JvmBridge.ClassFiles;
+using JvmBridge.Testing;
+
+using Xunit;
+
+namespace LegacyForgePatcher.Tests;
+
+/// <summary>Redirecting FML's switch to the play state in NetworkDispatcher class files.</summary>
+public sealed class HandshakeStatePatchTests
+{
+    private const byte AconstNull = 0x01;
+    private const string ClassName = "net/minecraftforge/fml/common/network/handshake/NetworkDispatcher";
+    private const string HelperDescriptor = "(Ljava/lang/Object;Ljava/lang/Object;)V";
+    private const string HelperName = "setConnectionState";
+    private const byte IconstZero = 0x03;
+    private const byte InvokeVirtual = 0xb6;
+    private const byte Ireturn = 0xac;
+    private const string ServerInitiateHandshake = "serverInitiateHandshake";
+
+    /// <summary>The compiled helper declares the static method the patch calls, in a class that Java 8 loads.</summary>
+    [Fact]
+    public void HelperDeclaresTheMethodThePatchCalls()
+    {
+        JavaClassFile helper = JavaClassFile.Read(JavaClasses.Legacyforgepatcher.ConnectionStates.Bytes.Span);
+
+        Assert.Equal(JavaClasses.Legacyforgepatcher.ConnectionStates.Name, helper.Name);
+        Assert.Equal(expected: 52, helper.MajorVersion);
+        Assert.NotNull(helper.FindMethod(HelperName, HelperDescriptor));
+    }
+
+    /// <summary>A NetworkDispatcher whose <c>serverInitiateHandshake</c> doesn't switch the state, as in Forge versions that do it elsewhere, is left alone with a reason.</summary>
+    [Fact]
+    public void PatchLeavesClassesWhoseHandshakeDoesNotSwitch()
+    {
+        ClassPatchResult result = PatcherAgent.HandshakeState.Apply(CreateClassFile((ServerInitiateHandshake, Switches: 0)));
+
+        Assert.False(result.Changed);
+        Assert.Null(result.Bytes);
+        Assert.Contains(expectedSubstring: "0 times instead of once", result.SkippedReason, StringComparison.Ordinal);
+    }
+
+    /// <summary>A handshake that switches more than once isn't the code this fix was written for, so the class is left alone.</summary>
+    [Fact]
+    public void PatchLeavesHandshakesThatSwitchMoreThanOnce()
+    {
+        ClassPatchResult result = PatcherAgent.HandshakeState.Apply(CreateClassFile((ServerInitiateHandshake, Switches: 2)));
+
+        Assert.False(result.Changed);
+        Assert.Contains(expectedSubstring: "2 times instead of once", result.SkippedReason, StringComparison.Ordinal);
+    }
+
+    /// <summary>NetworkDispatcher switches the state in another method too, on the client side, and that switch stays as it was.</summary>
+    [Fact]
+    public void PatchLeavesTheSwitchInOtherMethodsAlone()
+    {
+        byte[] patched = PatcherAgent.HandshakeState.Apply(CreateClassFile((ServerInitiateHandshake, Switches: 1), (Name: "clientListenForServerHandshake", Switches: 1))).Bytes
+            ?? throw new InvalidOperationException(message: "The class file was left unchanged.");
+
+        ClassFileAssert.Calls(
+            patched,
+            method: "clientListenForServerHandshake",
+            PatcherAgent.SetConnectionState.Owner,
+            PatcherAgent.SetConnectionState.Name,
+            PatcherAgent.SetConnectionState.Descriptor
+        );
+    }
+
+    /// <summary>The switch in <c>serverInitiateHandshake</c> now goes to the helper, with the manager and the state as its arguments.</summary>
+    [Fact]
+    public void PatchRedirectsTheSwitchInServerInitiateHandshake()
+    {
+        ClassPatchResult result = PatcherAgent.HandshakeState.Apply(CreateClassFile((ServerInitiateHandshake, Switches: 1)));
+        byte[] patched = result.Bytes ?? throw new InvalidOperationException(result.ToString());
+
+        ClassFileAssert.Calls(patched, ServerInitiateHandshake, JavaClasses.Legacyforgepatcher.ConnectionStates.Name, HelperName, HelperDescriptor);
+        ClassFileAssert.DoesNotCall(
+            patched,
+            ServerInitiateHandshake,
+            PatcherAgent.SetConnectionState.Owner,
+            PatcherAgent.SetConnectionState.Name,
+            PatcherAgent.SetConnectionState.Descriptor
+        );
+    }
+
+    // A class file with straight-line methods returning an int, each of which switches the connection state the given number of times.
+    private static byte[] CreateClassFile(params (string Name, int Switches)[] methods)
+    {
+        ClassFileWriter writer = new(ClassName);
+        int setConnectionState = writer.AddMethodReference(PatcherAgent.SetConnectionState.Owner, PatcherAgent.SetConnectionState.Name, PatcherAgent.SetConnectionState.Descriptor);
+        byte[] call = [AconstNull, AconstNull, InvokeVirtual, checked((byte)(setConnectionState >> 8)), checked((byte)(setConnectionState & 0xff))];
+
+        foreach ((string name, int switches) in methods)
+        {
+            byte[] code = [.. Enumerable.Repeat(call, switches).SelectMany(static instruction => instruction), IconstZero, Ireturn];
+
+            writer = writer.AddMethod(name, descriptor: "()I", maxStack: 2, maxLocals: 1, code);
+        }
+
+        return writer.ToArray();
+    }
+}

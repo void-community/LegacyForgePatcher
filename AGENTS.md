@@ -1,12 +1,12 @@
 # Repository guidelines
 
-LegacyForgePatcher is a NativeAOT JVM agent, written in C# with JvmBridge, that fixes launch failures of legacy Forge on current Java. Each fix targets the exact upstream code it repairs and leaves every other class unchanged.
+LegacyForgePatcher is a NativeAOT JVM agent, written in C# with JvmBridge, that fixes legacy Forge where its own code breaks: on current Java, as Forge 1.7.2's launch does, or under load, as Forge 1.12's logins do. Each fix targets the exact upstream code it repairs and leaves every other class unchanged.
 
 ## Layout
 
-- `src`: the agent, its declarative class patch and the Java helper that patch calls.
+- `src`: the agent, its class patches and the Java helpers those patches call.
 - `tests/LegacyForgePatcher.Tests`: xUnit unit tests of class file patching, referencing the agent project.
-- `tests/LegacyForgePatcher.IntegrationTests`: xUnit tests that load the published agent into real JVMs, against Java fixtures and real Forge servers.
+- `tests/LegacyForgePatcher.IntegrationTests`: xUnit tests that load the published agent into real JVMs, against Java fixtures (one folder per scenario under `Fixtures`) and real Forge servers.
 - `.github`: reusable CI, GitHub releases, dependency maintenance, and repository templates.
 
 ## Source conventions
@@ -19,6 +19,7 @@ Don't add `global.json`, NuGet lock files, or other .NET JSON configuration. CI 
 
 - Keep every agent callback non-throwing in effect: patch only classes whose bytes match the expected upstream shape, and leave anything else unchanged.
 - The Java helper compiles with `javac --release 8`, the earliest Java with the behavior this agent fixes, so it need not load on anything older.
+- Helpers live in the bootstrap loader, which can't see Minecraft, Forge or Netty, so a helper reaches them through reflection on their public types.
 - Register patches and helpers from `Configure`. Ordinary JNI must not run in Agent_OnLoad, and JvmBridge defines helpers at VM initialization.
 - Keep the agent free of host requirements such as libicu: JVM hosts are often slim images. Log through `AgentContext.Log`, not `Console`.
 

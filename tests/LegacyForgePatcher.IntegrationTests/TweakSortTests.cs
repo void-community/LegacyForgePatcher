@@ -19,7 +19,7 @@ public sealed class TweakSortTests
         PublishedAgent agent = PublishedAgent.Find(name: "LegacyForgePatcher");
 
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-        string classPath = await jdk.CompileAsync(sources: "Fixtures/**/*.java", cancellationToken: cancellationToken);
+        string classPath = await jdk.CompileAsync(sources: "Fixtures/TweakSort/**/*.java", cancellationToken: cancellationToken);
         JavaRun unpatched = await jdk.RunAsync(MainClass, classPath, cancellationToken: cancellationToken);
 
         // The JVM must count a sort as a structural change, as Java from 8u20 does, for the agent to have anything to fix.
@@ -41,7 +41,7 @@ public sealed class TweakSortTests
         PublishedAgent jar = PublishedAgent.FindJar(name: "LegacyForgePatcher");
 
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-        string classPath = await jdk.CompileAsync(sources: "Fixtures/**/*.java", cancellationToken: cancellationToken);
+        string classPath = await jdk.CompileAsync(sources: "Fixtures/TweakSort/**/*.java", cancellationToken: cancellationToken);
         JavaRun patched = await jdk.RunAsync(MainClass, classPath, jar, cancellationToken: cancellationToken);
 
         AssertPatched(patched);
