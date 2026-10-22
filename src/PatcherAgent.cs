@@ -6,7 +6,8 @@ namespace LegacyForgePatcher;
 /// <summary>
 /// Repairs Forge where its own code breaks: the tweaker sort that stops Forge for Minecraft 1.7.2 on Java 8u20 and later, the connection state switch that drops
 /// players at login on Forge for Minecraft 1.12, the registry rebuilds that crash Forge for 1.12 and 1.12.1 clients when a proxy moves them to another server, and
-/// the list of handshake messages that drops players at login on Forge for 1.13 to 1.20.1.
+/// the list of handshake messages that drops players at login on Forge for 1.13 to 1.20.1, and the second load of FML's config that crashes Forge and NeoForge
+/// clients at startup from 1.20.1.
 /// </summary>
 public sealed class PatcherAgent : JavaAgent
 {
@@ -78,6 +79,7 @@ public sealed class PatcherAgent : JavaAgent
         context.DefineClass(JavaClasses.Legacyforgepatcher.Collections, ClassLoaderTarget.Bootstrap);
         context.DefineClass(JavaClasses.Legacyforgepatcher.ConnectionStates, ClassLoaderTarget.Bootstrap);
         context.DefineClass(JavaClasses.Legacyforgepatcher.ClientThread, ClassLoaderTarget.Bootstrap);
+        context.DefineClass(JavaClasses.Legacyforgepatcher.ModLoaderConfigs, ClassLoaderTarget.Bootstrap);
         // Forge's handshake calls this one by the descriptor of a Guava type, which only Forge's loader can resolve.
         context.DefineClass(RegistrySnapshots.Definition, ClassLoaderTarget.PatchedClassLoader);
         context.Patch(TweakSort);
@@ -86,6 +88,9 @@ public sealed class PatcherAgent : JavaAgent
         context.Patch(RegistryInjection);
 
         foreach (ClassPatch patch in HandshakeSentMessages.Patches)
+            context.Patch(patch);
+
+        foreach (ClassPatch patch in ModLoaderConfigurationLoad.Patches)
             context.Patch(patch);
     }
 }
