@@ -5,7 +5,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Package version, Minecraft and Forge versions, server or client, JVM vendor and full version, OS, and JVM process architecture.
+      description: Release version, Minecraft and Forge versions, server or client, JVM vendor and full version, OS, and JVM process architecture.
     validations:
       required: true
   - type: textarea

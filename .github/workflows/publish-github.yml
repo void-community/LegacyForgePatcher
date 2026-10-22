@@ -1,0 +1,36 @@
+name: GitHub Release Workflow
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Exact version of the agents validated in this run
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.repository == 'void-community/LegacyForgePatcher' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: agent-*
+          path: artifacts/agent
+          merge-multiple: true
+      - name: Name the validated agents after their platforms
+        run: |
+          mkdir -p artifacts/release
+          for agent in artifacts/agent/*/LegacyForgePatcher.so; do
+            platform="$(basename "$(dirname "$agent")")"
+            cp "$agent" "artifacts/release/legacyforgepatcher-$platform.so"
+          done
+          ls artifacts/release
+      - name: Publish the validated agents
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v$VERSION" artifacts/release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "v$VERSION" --generate-notes --latest

@@ -27,8 +27,7 @@ jobs:
     if: github.repository == 'void-community/LegacyForgePatcher' && github.ref == 'refs/heads/main'
     needs: [version, build, test]
     permissions:
-      contents: read
-      id-token: write
-    uses: ./.github/workflows/publish-nuget.yml
+      contents: write
+    uses: ./.github/workflows/publish-github.yml
     with:
       version: ${{ needs.version.outputs.version }}

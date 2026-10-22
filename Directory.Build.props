@@ -9,7 +9,6 @@
     <Authors>void-community</Authors>
     <RepositoryUrl>https://github.com/void-community/LegacyForgePatcher</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
   <!-- Matches caunt/NetAgents: UTC year.month.day and a 1000..9999 time-of-day bucket. -->
   <PropertyGroup>
@@ -26,6 +25,5 @@
     <VersionScaledSecondsOfDay>$([MSBuild]::Multiply($(VersionSecondsOfDay), 9000))</VersionScaledSecondsOfDay>
     <VersionTimeBucket>$([MSBuild]::Add(1000, $([MSBuild]::Divide($(VersionScaledSecondsOfDay), 86400))))</VersionTimeBucket>
     <Version Condition="'$(Version)' == ''">$(VersionYear).$(VersionMonth).$(VersionDay).$(VersionTimeBucket)</Version>
-    <PackageVersion Condition="'$(PackageVersion)' == ''">$(Version)</PackageVersion>
   </PropertyGroup>
 </Project>

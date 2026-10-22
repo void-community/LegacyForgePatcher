@@ -8,21 +8,9 @@
     <PublishDocumentationFile>false</PublishDocumentationFile>
     <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
     <Description>A native JVM agent that lets Forge for Minecraft 1.7.2 launch on Java 8u20 and later.</Description>
-    <PackageTags>minecraft;forge;fml;jvmti;agent</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <!-- The package carries the published native agents, not the managed assembly. -->
-    <IncludeBuildOutput>false</IncludeBuildOutput>
-    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-    <NativeAgentsDirectory Condition="'$(NativeAgentsDirectory)' == ''">$(MSBuildThisFileDirectory)../../artifacts/agent/</NativeAgentsDirectory>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="JvmBridge" />
     <InternalsVisibleTo Include="LegacyForgePatcher.Tests" />
-    <None Include="../../README.md" Pack="true" PackagePath="/" Visible="false" />
-    <NativeAgent Include="$(NativeAgentsDirectory)**/LegacyForgePatcher.so" />
-    <None Include="@(NativeAgent)" Pack="true" PackagePath="runtimes/%(RecursiveDir)native/%(Filename)%(Extension)" Visible="false" />
   </ItemGroup>
-  <Target Name="RequireNativeAgents" BeforeTargets="GenerateNuspec">
-    <Error Condition="'@(NativeAgent)' == ''" Text="Publish the agent for each runtime into $(NativeAgentsDirectory)&lt;RID&gt; before packing." />
-  </Target>
 </Project>

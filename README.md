@@ -1,7 +1,7 @@
 # LegacyForgePatcher
 
 [![CI](https://img.shields.io/github/actions/workflow/status/void-community/LegacyForgePatcher/runnable-commit.yml?branch=main&style=for-the-badge)](https://github.com/void-community/LegacyForgePatcher/actions/workflows/runnable-commit.yml)
-[![NuGet](https://img.shields.io/nuget/v/LegacyForgePatcher?style=for-the-badge)](https://www.nuget.org/packages/LegacyForgePatcher)
+[![Release](https://img.shields.io/github/v/release/void-community/LegacyForgePatcher?style=for-the-badge)](https://github.com/void-community/LegacyForgePatcher/releases/latest)
 [![License](https://img.shields.io/github/license/void-community/LegacyForgePatcher?style=for-the-badge)](LICENSE)
 
 **Run Forge for Minecraft 1.7.2 on Java 8u20 and later.**
@@ -21,11 +21,10 @@ LegacyForgePatcher is a native JVM agent that fixes this while the game loads. I
 
 ## Usage
 
-Download the agent for your platform from the [**NuGet package**](https://www.nuget.org/packages/LegacyForgePatcher). A `.nupkg` is a zip archive with the agent under `runtimes/<platform>/native`:
+Download the agent for your platform from the [**latest release**](https://github.com/void-community/LegacyForgePatcher/releases/latest):
 
 ```sh
-curl -fsSL -o LegacyForgePatcher.nupkg https://www.nuget.org/api/v2/package/LegacyForgePatcher
-unzip -j LegacyForgePatcher.nupkg runtimes/linux-x64/native/LegacyForgePatcher.so
+curl -fsSL -o LegacyForgePatcher.so https://github.com/void-community/LegacyForgePatcher/releases/latest/download/legacyforgepatcher-linux-x64.so
 ```
 
 Load it with `-agentpath`, which takes an absolute path, in the Java arguments of the server or the launcher profile:
@@ -49,14 +48,12 @@ The game's log confirms the fix:
 LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager to sort tweakers without disturbing their iteration
 ```
 
-.NET applications and test projects can reference the package instead: their build output gets the agents under `runtimes/<platform>/native`.
-
 ## Compatibility
 
-| Platform      | Package path                                     |
-|---------------|--------------------------------------------------|
-| Linux x64     | `runtimes/linux-x64/native/LegacyForgePatcher.so`   |
-| Linux ARM64   | `runtimes/linux-arm64/native/LegacyForgePatcher.so` |
+| Platform    | Release asset                       |
+|-------------|-------------------------------------|
+| Linux x64   | `legacyforgepatcher-linux-x64.so`   |
+| Linux ARM64 | `legacyforgepatcher-linux-arm64.so` |
 
 CI starts a Forge 1.7.2 server in itzg/minecraft-server with the agent on both platforms for every commit. The agent leaves a game alone when its Forge doesn't sort this way; Forge for Minecraft 1.6.4, for example, starts on Java 8 without it.
 
@@ -76,9 +73,9 @@ dotnet publish src/LegacyForgePatcher -c Release -r linux-x64 -o artifacts/agent
 
 `dotnet test LegacyForgePatcher.slnx` runs the unit tests and skips the native ones. To run those, set `TARGET_RID` to a published platform and `JAVA_HOME` to a Java 8 JDK; the Forge server test also needs Docker.
 
-## Packages
+## Releases
 
-Every validated commit to `main` publishes its tested NuGet package using Trusted Publishing. Versions follow [**NetAgents' timestamp scheme**](https://github.com/caunt/NetAgents): `YY.M.D.B`, with a UTC time-of-day bucket from 1000 through 9999. There are no release PRs or tags.
+Every validated commit to `main` publishes a GitHub release with the agents it tested. Versions follow [**NetAgents' timestamp scheme**](https://github.com/caunt/NetAgents): `YY.M.D.B`, with a UTC time-of-day bucket from 1000 through 9999, and releases are tagged `vYY.M.D.B`. There are no release PRs.
 
 ## License
 

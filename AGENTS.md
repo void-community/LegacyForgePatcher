@@ -4,10 +4,10 @@ LegacyForgePatcher is a NativeAOT JVM agent, written in C# with JvmBridge, that 
 
 ## Layout
 
-- `src/LegacyForgePatcher`: the agent, its class file reading and writing, and the package that carries the published native agents.
+- `src/LegacyForgePatcher`: the agent and its class file reading and writing.
 - `tests/LegacyForgePatcher.Tests`: xUnit unit tests of class file patching, referencing the agent project.
 - `tests/LegacyForgePatcher.IntegrationTests`: xUnit tests that load the published agent into real JVMs, against Java fixtures and real Forge servers.
-- `.github`: reusable CI, NuGet Trusted Publishing, dependency maintenance, and repository templates.
+- `.github`: reusable CI, GitHub releases, dependency maintenance, and repository templates.
 
 ## Source conventions
 
@@ -35,8 +35,8 @@ Use Conventional Commits with a scope, a gitmoji after the scope, and past-tense
 
 Examples: `fix(agent): 🐛 patched FML's tweak sort on Java 8u20 and later`, `ci(test): ✅ started Forge servers with the published agent`.
 
-Pull request descriptions use the repository template. Every validated main commit publishes its tested NuGet artifact through `publish-nuget.yml` and the `nuget` environment using Trusted Publishing. There are no release PRs, release tags, or release-please workflows. Versions follow NetAgents' UTC `YY.M.D.B` scheme, with the timestamp frozen once per workflow run. Never rebuild packages in the publishing job, publish unvalidated artifacts, print tokens, or copy organization secrets into this repository.
+Pull request descriptions use the repository template. Every validated main commit publishes the agents it tested as a GitHub release through `publish-github.yml`, tagged `vYY.M.D.B` with assets named `legacyforgepatcher-<RID>.so`. There are no release PRs or release-please workflows. Versions follow NetAgents' UTC `YY.M.D.B` scheme, with the timestamp frozen once per workflow run. Never rebuild agents in the publishing job, publish unvalidated artifacts, print tokens, or copy organization secrets into this repository.
 
 ## Documentation
 
-Keep README commands executable and aligned with the package layout. Bold documentation link captions and do not put inline code inside link captions. Claim only the Forge versions, Java versions and platforms that tests or recorded checks actually covered.
+Keep README commands executable and aligned with the release assets. Bold documentation link captions and do not put inline code inside link captions. Claim only the Forge versions, Java versions and platforms that tests or recorded checks actually covered.
