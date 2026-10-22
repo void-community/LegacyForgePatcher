@@ -68,7 +68,7 @@ The agent is written in C# with [**JvmBridge**](https://github.com/void-communit
 Install the .NET 10 SDK, Clang and zlib development headers, then publish the agent for each platform:
 
 ```sh
-dotnet publish src/LegacyForgePatcher -c Release -r linux-x64 -o artifacts/agent/linux-x64
+dotnet publish src -c Release -r linux-x64 -o artifacts/agent/linux-x64
 ```
 
 `dotnet test LegacyForgePatcher.slnx` runs the unit tests and skips the native ones. To run those, set `TARGET_RID` to a published platform and `JAVA_HOME` to a Java 8 JDK; the Forge server test also needs Docker.

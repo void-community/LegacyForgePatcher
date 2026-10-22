@@ -21,6 +21,6 @@ jobs:
         shell: bash
         run: |
           version_timestamp="$(date -u '+%y %m %d %H %M %S')"
-          version="$(dotnet msbuild src/LegacyForgePatcher/LegacyForgePatcher.csproj -getProperty:Version "-p:VersionTimestamp=$version_timestamp")"
+          version="$(dotnet msbuild src/LegacyForgePatcher.csproj -getProperty:Version "-p:VersionTimestamp=$version_timestamp")"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "timestamp=$version_timestamp" >> "$GITHUB_OUTPUT"

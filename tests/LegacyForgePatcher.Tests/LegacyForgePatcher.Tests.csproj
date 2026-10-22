@@ -10,6 +10,6 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
-    <ProjectReference Include="../../src/LegacyForgePatcher/LegacyForgePatcher.csproj" />
+    <ProjectReference Include="../../src/LegacyForgePatcher.csproj" />
   </ItemGroup>
 </Project>

@@ -53,7 +53,7 @@ jobs:
       - name: Prepare Linux native toolchain
         run: sudo apt-get update -qq && sudo apt-get install -y clang zlib1g-dev
       - name: Publish the native agent
-        run: dotnet publish src/LegacyForgePatcher -c Release -r "$TARGET_RID" -o "artifacts/agent/$TARGET_RID"
+        run: dotnet publish src -c Release -r "$TARGET_RID" -o "artifacts/agent/$TARGET_RID"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: agent-${{ matrix.rid }}
