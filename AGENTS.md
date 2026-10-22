@@ -24,7 +24,7 @@ Don't add `global.json`, NuGet lock files, or other .NET JSON configuration. CI 
 
 ## Verification
 
-Install the .NET 10 SDK, Clang and zlib development headers. The build compiles the Java helper with the JDK in `JvmBridgeJdkHome` or `JAVA_HOME`, and downloads a pinned JDK when neither names one. Run `dotnet build LegacyForgePatcher.slnx -c Release` and `dotnet test LegacyForgePatcher.slnx -c Release --no-build`, which skips the native tests. Publish the agent with `dotnet publish src -c Release -r <RID> -o artifacts/agent/<RID>`, then run `dotnet test tests/LegacyForgePatcher.IntegrationTests -c Release` with `TARGET_RID=<RID>`. JvmBridge.Testing downloads a checksum-pinned Java 8 JDK, or uses the one `JVMBRIDGE_JDK_8` names. The Forge server test needs Docker. Record which platforms and Java versions actually executed.
+Install the .NET 10 SDK, Clang and zlib development headers. The build compiles the Java helper with the JDK in `JvmBridgeJdkHome` or `JAVA_HOME`, and downloads a pinned JDK when neither names one. Run `dotnet build LegacyForgePatcher.slnx -c Release` and `dotnet test LegacyForgePatcher.slnx -c Release --no-build`, which skips the native tests. Publish the agent with `dotnet publish src -c Release -r <RID> -o artifacts/agent/<RID>`. Pack it for `java -javaagent` with the `jvmbridge` command (`dotnet tool install --global JvmBridge.Tool`, in a version at least as new as the JvmBridge package): `jvmbridge pack -o artifacts/agent/<RID>/LegacyForgePatcher.jar --agent <RID>=artifacts/agent/<RID>/LegacyForgePatcher.so`. Then run `dotnet test tests/LegacyForgePatcher.IntegrationTests -c Release` with `TARGET_RID=<RID>`; the jar tests skip until the jar is packed. JvmBridge.Testing downloads a checksum-pinned Java 8 JDK, or uses the one `JVMBRIDGE_JDK_8` names. The Forge server test needs Docker. Record which platforms and Java versions actually executed.
 
 CI must account for every configured platform. Never weaken tests or skip source, build or workflow changes to get green checks.
 
@@ -34,7 +34,7 @@ Use Conventional Commits with a scope, a gitmoji after the scope, and past-tense
 
 Examples: `fix(agent): 🐛 patched FML's tweak sort on Java 8u20 and later`, `ci(test): ✅ started Forge servers with the published agent`.
 
-Pull request descriptions use the repository template. Every validated main commit publishes the agents it tested as a GitHub release through `publish-github.yml`, tagged `vYY.M.D.B` with assets named `legacyforgepatcher-<RID>.so`. There are no release PRs or release-please workflows. Versions follow NetAgents' UTC `YY.M.D.B` scheme, with the timestamp frozen once per workflow run. Never rebuild agents in the publishing job, publish unvalidated artifacts, print tokens, or copy organization secrets into this repository.
+Pull request descriptions use the repository template. Every validated main commit publishes the agents it tested as a GitHub release through `publish-github.yml`, tagged `vYY.M.D.B` with the `legacyforgepatcher.jar` for `-javaagent`, which holds the library of every platform, and one `legacyforgepatcher-<RID>.so` per platform for `-agentpath`. The jar is packed once in the build workflow, so the tests and the release use the same file. There are no release PRs or release-please workflows. Versions follow NetAgents' UTC `YY.M.D.B` scheme, with the timestamp frozen once per workflow run. Never rebuild agents in the publishing job, publish unvalidated artifacts, print tokens, or copy organization secrets into this repository.
 
 ## Documentation
 

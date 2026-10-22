@@ -28,6 +28,31 @@ public sealed class TweakSortTests
 
         JavaRun patched = await jdk.RunAsync(MainClass, classPath, agent, cancellationToken: cancellationToken);
 
+        AssertPatched(patched);
+    }
+
+    /// <summary>The jar for <c>-javaagent</c> fixes the fixture as the library for <c>-agentpath</c> does, although the JVM starts it after the VM is up.</summary>
+    [Theory]
+    [JdkData(8)]
+    public async Task JavaAgentJarLetsFixtureSortTweakersWhileIteratingThem(Jdk jdk)
+    {
+        ArgumentNullException.ThrowIfNull(jdk);
+
+        string jar = AgentJar.Find();
+
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        string classPath = await jdk.CompileAsync(sources: "Fixtures/**/*.java", cancellationToken: cancellationToken);
+        JavaRunOptions options = new();
+
+        options.JvmArguments.Add("-javaagent:" + jar);
+
+        JavaRun patched = await jdk.RunAsync(MainClass, classPath, options: options, cancellationToken: cancellationToken);
+
+        AssertPatched(patched);
+    }
+
+    private static void AssertPatched(JavaRun patched)
+    {
         Assert.True(patched.ExitCode is 0, patched.Output);
         Assert.Contains(
             expectedSubstring: "LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager",

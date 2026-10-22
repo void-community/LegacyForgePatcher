@@ -59,3 +59,32 @@ jobs:
           name: agent-${{ matrix.rid }}
           path: artifacts/agent/*/LegacyForgePatcher.so
           if-no-files-found: error
+  jar:
+    needs: agent
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.402
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: agent-*
+          path: artifacts/agent
+          merge-multiple: true
+      # The jar holds the library of every platform, so one file serves java -javaagent anywhere. The tests and the release use this very file.
+      - name: Pack the agents into one jar
+        run: |
+          dotnet tool install JvmBridge.Tool --version 26.10.22.4199 --tool-path "$RUNNER_TEMP/tools"
+          agents=()
+          for library in artifacts/agent/*/LegacyForgePatcher.so; do
+            agents+=(--agent "$(basename "$(dirname "$library")")=$library")
+          done
+          "$RUNNER_TEMP/tools/jvmbridge" pack -o artifacts/jar/LegacyForgePatcher.jar "${agents[@]}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: jar
+          path: artifacts/jar/LegacyForgePatcher.jar
+          if-no-files-found: error

@@ -22,9 +22,14 @@ jobs:
           pattern: agent-*
           path: artifacts/agent
           merge-multiple: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: jar
+          path: artifacts/jar
       - name: Name the validated agents after their platforms
         run: |
           mkdir -p artifacts/release
+          cp artifacts/jar/LegacyForgePatcher.jar artifacts/release/legacyforgepatcher.jar
           for agent in artifacts/agent/*/LegacyForgePatcher.so; do
             platform="$(basename "$(dirname "$agent")")"
             cp "$agent" "artifacts/release/legacyforgepatcher-$platform.so"

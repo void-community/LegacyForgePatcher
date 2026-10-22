@@ -21,24 +21,24 @@ LegacyForgePatcher is a native Java agent that fixes this while the game loads. 
 
 ## 🚀 Usage
 
-Download the agent from the [**latest release**](https://github.com/void-community/LegacyForgePatcher/releases/latest):
+Download the agent from the [**latest release**](https://github.com/void-community/LegacyForgePatcher/releases/latest). One jar serves Linux x64 and ARM64:
 
 ```sh
-curl -fsSL -o LegacyForgePatcher.so https://github.com/void-community/LegacyForgePatcher/releases/latest/download/legacyforgepatcher-linux-x64.so
+curl -fsSL -O https://github.com/void-community/LegacyForgePatcher/releases/latest/download/legacyforgepatcher.jar
 ```
 
-Add it to the Java arguments of the server or the launcher profile with `-agentpath`, which takes an absolute path:
+Add it to the Java arguments of the server or the launcher profile with `-javaagent`:
 
 ```sh
-java -agentpath:/opt/patcher/LegacyForgePatcher.so -jar forge-1.7.2-10.12.2.1161-mc172-universal.jar nogui
+java -javaagent:legacyforgepatcher.jar -jar forge-1.7.2-10.12.2.1161-mc172-universal.jar nogui
 ```
 
-🐳 With [**itzg/minecraft-server**](https://github.com/itzg/docker-minecraft-server), mount the agent and pass it through `JVM_OPTS`:
+🐳 With [**itzg/minecraft-server**](https://github.com/itzg/docker-minecraft-server), mount the jar and pass it through `JVM_OPTS`:
 
 ```sh
 docker run -d -e EULA=TRUE -e TYPE=FORGE -e VERSION=1.7.2 \
-  -e JVM_OPTS=-agentpath:/patcher/LegacyForgePatcher.so \
-  -v "$PWD/LegacyForgePatcher.so:/patcher/LegacyForgePatcher.so:ro" \
+  -e JVM_OPTS=-javaagent:/patcher/legacyforgepatcher.jar \
+  -v "$PWD/legacyforgepatcher.jar:/patcher/legacyforgepatcher.jar:ro" \
   itzg/minecraft-server:java8
 ```
 
@@ -50,12 +50,14 @@ LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager (sortTweakLis
 
 ## 📦 Compatibility
 
-| Platform    | Release asset                       |
-|-------------|-------------------------------------|
-| Linux x64   | `legacyforgepatcher-linux-x64.so`   |
-| Linux ARM64 | `legacyforgepatcher-linux-arm64.so` |
+| Platform    | `-javaagent` jar         | `-agentpath` library                |
+|-------------|--------------------------|-------------------------------------|
+| Linux x64   | `legacyforgepatcher.jar` | `legacyforgepatcher-linux-x64.so`   |
+| Linux ARM64 | `legacyforgepatcher.jar` | `legacyforgepatcher-linux-arm64.so` |
 
-CI starts a Forge 1.7.2 server on Java 8 in itzg/minecraft-server with the agent on both platforms for every commit. The agent leaves a game alone when its Forge doesn't sort this way; Forge for Minecraft 1.6.4, for example, starts on Java 8 without it.
+The jar unpacks the library of its platform into a temporary directory when the JVM starts. To load the library directly, pass the `.so` of your platform to `-agentpath` with an absolute path.
+
+CI starts a Forge 1.7.2 server on Java 8 in itzg/minecraft-server with the agent on both platforms for every commit, once with the jar and once with the `.so`. The agent leaves a game alone when its Forge doesn't sort this way; Forge for Minecraft 1.6.4, for example, starts on Java 8 without it.
 
 ## 📄 License
 

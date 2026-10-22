@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 
@@ -17,35 +19,47 @@ public sealed class ForgeServerTests
 
     private static readonly TimeSpan StartTimeout = TimeSpan.FromMinutes(minutes: 10);
 
-    /// <summary>Forge for Minecraft 1.7.2 sorts its tweakers without crashing and the server becomes ready.</summary>
+    /// <summary>Forge for Minecraft 1.7.2 sorts its tweakers without crashing and the server becomes ready with the native library loaded by <c>-agentpath</c>.</summary>
     [Fact]
-    public async Task Forge172ServerStartsWithAgent()
+    public async Task Forge172ServerStartsWithAgentPath()
     {
-        PublishedAgent agent = PublishedAgent.Find(name: "LegacyForgePatcher");
+        await AssertServerStartsAsync(option: "-agentpath:", new FileInfo(PublishedAgent.Find(name: "LegacyForgePatcher").FilePath));
+    }
 
+    /// <summary>The same server becomes ready with the jar loaded by <c>-javaagent</c>.</summary>
+    [Fact]
+    public async Task Forge172ServerStartsWithJavaAgentJar()
+    {
+        await AssertServerStartsAsync(option: "-javaagent:", new FileInfo(AgentJar.Find()));
+    }
+
+    private static async Task AssertServerStartsAsync(string option, FileInfo agent)
+    {
         using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
 
         timeout.CancelAfter(StartTimeout);
 
-        await using IContainer server = new ContainerBuilder(Image)
+        IContainer server = new ContainerBuilder(Image)
             .WithEnvironment(name: "EULA", value: "TRUE")
             .WithEnvironment(name: "TYPE", value: "FORGE")
             .WithEnvironment(name: "VERSION", value: "1.7.2")
             .WithEnvironment(name: "MEMORY", value: "1G")
-            .WithEnvironment(name: "JVM_OPTS", $"-agentpath:{AgentDirectory}{Path.GetFileName(agent.FilePath)}")
-            .WithResourceMapping(new FileInfo(agent.FilePath), AgentDirectory)
+            .WithEnvironment(name: "JVM_OPTS", option + AgentDirectory + agent.Name)
+            .WithResourceMapping(agent, AgentDirectory)
             .Build();
 
-        await server.StartAsync(timeout.Token);
+        await using ConfiguredAsyncDisposable disposal = server.ConfigureAwait(continueOnCapturedContext: false);
+
+        await server.StartAsync(timeout.Token).ConfigureAwait(continueOnCapturedContext: false);
 
         // itzg installs Forge first, then the server either becomes ready or exits.
         Task<long> exit = server.GetExitCodeAsync(timeout.Token);
-        string logs = await ReadLogsAsync(server, timeout.Token);
+        string logs = await ReadLogsAsync(server, timeout.Token).ConfigureAwait(continueOnCapturedContext: false);
 
         while (!logs.Contains(ReadyLine, StringComparison.Ordinal) && !exit.IsCompleted)
         {
-            await Task.Delay(TimeSpan.FromSeconds(seconds: 2), timeout.Token);
-            logs = await ReadLogsAsync(server, timeout.Token);
+            await Task.Delay(TimeSpan.FromSeconds(seconds: 2), timeout.Token).ConfigureAwait(continueOnCapturedContext: false);
+            logs = await ReadLogsAsync(server, timeout.Token).ConfigureAwait(continueOnCapturedContext: false);
         }
 
         Assert.Contains(expectedSubstring: "LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager", logs, StringComparison.Ordinal);

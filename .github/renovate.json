@@ -11,10 +11,17 @@
       "managerFilePatterns": ["/^tests/.+\\.cs$/"],
       "matchStrings": ["\"(?<depName>itzg/minecraft-server):(?<currentValue>[^\"]+)\""],
       "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "The jvmbridge command that CI packs the -javaagent jar with",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.yml$/"],
+      "matchStrings": ["dotnet tool install (?<depName>JvmBridge\\.Tool) --version (?<currentValue>[0-9.]+)"],
+      "datasourceTemplate": "nuget"
     }
   ],
   "packageRules": [
-    {"description": "JvmBridge.Testing requires at least the same JvmBridge version, so the two update together", "matchPackageNames": ["JvmBridge", "JvmBridge.Testing"], "groupName": "JvmBridge"},
+    {"description": "JvmBridge.Testing and the jvmbridge command require at least the same JvmBridge version, so they update together", "matchPackageNames": ["JvmBridge", "JvmBridge.Testing", "JvmBridge.Tool"], "groupName": "JvmBridge"},
     {"matchUpdateTypes": ["minor", "patch", "pin", "digest"], "automerge": true},
     {"matchUpdateTypes": ["major"], "automerge": false}
   ]
