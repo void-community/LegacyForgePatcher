@@ -4,9 +4,9 @@
 [![Release](https://img.shields.io/github/v/release/void-community/LegacyForgePatcher?style=for-the-badge)](https://github.com/void-community/LegacyForgePatcher/releases/latest)
 [![License](https://img.shields.io/github/license/void-community/LegacyForgePatcher?style=for-the-badge)](LICENSE)
 
-**Fix Forge servers and clients that break on current Java, under load or behind a proxy.** ☕
+**Fix Forge, NeoForge and Minecraft servers and clients that break on current Java, under load or behind a proxy.** ☕
 
-LegacyForgePatcher is a native Java agent that repairs these while the game loads. It changes no game or Forge files and needs no .NET installation. ✨
+LegacyForgePatcher is a native Java agent that repairs these while the game loads. It changes no game, Forge or NeoForge files and needs no .NET installation. ✨
 
 ## 🩹 What it fixes
 
@@ -47,6 +47,12 @@ java.lang.RuntimeException: java.util.concurrent.ExecutionException: java.lang.N
 java.lang.ClassCastException: class java.util.HashMap$Node cannot be cast to class java.util.HashMap$TreeNode (java.util.HashMap$Node and java.util.HashMap$TreeNode are in module java.base of loader 'bootstrap')
 	at java.util.HashSet.add(HashSet.java:221)
 	at net.minecraftforge.registries.ObjectHolderRegistry.addHandler(ObjectHolderRegistry.java:64)
+```
+
+**Minecraft clients from 1.20.5, vanilla, Forge and NeoForge alike, sometimes drop their own connection as they join:**
+
+```text
+[Render thread] [WARN] Client disconnected with reason: Internal Exception: io.netty.handler.codec.EncoderException: Pipeline has no outbound protocol configured, can't process packet ServerboundChunkBatchReceivedPacket
 ```
 
 **Forge for Minecraft 1.12 and 1.12.1 clients crash when a proxy such as BungeeCord or Void moves them to another server:**
@@ -94,6 +100,7 @@ LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/FMLH
 LegacyForgePatcher: patched net/minecraftforge/network/HandshakeHandler (<init>: sentMessages created as a CopyOnWriteArrayList (1 change))
 LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (load()V: 1 invocation of net/minecraftforge/fml/loading/FMLConfig.loadFrom redirected)
 LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: objectHolders created as a ConcurrentHashMap key set (1 change))
+LegacyForgePatcher: patched net/minecraft/client/multiplayer/ClientPacketListener (handleChunkBatchFinished(Lnet/minecraft/network/protocol/game/ClientboundChunkBatchFinishedPacket;)V: 1 invocation of net/minecraft/client/multiplayer/ClientPacketListener.send redirected)
 ```
 
 ## 📦 Compatibility
@@ -106,6 +113,7 @@ LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (
 | Keeps players that log in under load  | Server | 1.13.2, 1.14.4, 1.15, 1.16.5, 1.17.1, 1.18.2, 1.19.2, 1.20.1 | 25.0.223, 28.2.26, 29.0.4, 36.2.39, 37.1.1, 40.2.0, 43.5.0, 47.4.28; NeoForge 47.1.106 |
 | Opens the game's window at startup    | Client | 1.20.1 to 1.21.4      | 47.4.28, 48.1.0, 49.2.0, 50.2.0, 52.1.0, 54.1.0; NeoForge 20.2 to 21.4 (FancyModLoader 1.0 to 6.0) |
 | Loads mods without breaking the object holder registry | Client and server | 1.13.2 to 1.21.4 | 25.0.223, 28.2.26, 29.0.4, 31.2.57, 36.2.39, 37.1.1, 40.2.0, 43.5.0, 47.4.28, 49.2.0, 54.1.0; NeoForge 47.1.106 |
+| Keeps the connection when the first chunks arrive early | Client | 1.20.6 to 26.3 | Forge and NeoForge from 1.20.6, which run Minecraft with Mojang's names; vanilla Minecraft 26.1 to 26.3 |
 
 | Platform    | `-javaagent` jar         | `-agentpath` library                |
 |-------------|--------------------------|-------------------------------------|
@@ -116,7 +124,7 @@ The agent needs glibc 2.34 or later, as on Ubuntu 22.04, Debian 12 and RHEL 9. i
 
 The jar unpacks the library of its platform into a temporary directory when the JVM starts. To load the library directly, pass the `.so` of your platform to `-agentpath` with an absolute path.
 
-For every commit, CI starts these Forge servers on Java 8 in itzg/minecraft-server with the agent on both platforms: Forge 1.7.2 once with the jar and once with the `.so`, each Forge 1.12 build with the jar and 200 players logging in at once, and each Forge build from 1.13.2 to 1.20.1, and NeoForge for 1.20.1, with the jar and 200 players logging in at once through FML's handshake. Forge 1.19.4, 1.20.2 and 1.21.4, and NeoForge 20.4.253 and 21.4.161, start with the agent loading FML's config; the loading window that crashes only exists on clients, so that fix runs against a fixture of FML's two loads, on Java 17 and 21. The Forge servers from 1.13.2 load mods through the patched object holder registry, and a fixture has threads add its handlers at once, on Java 8 and 17. The client fix runs against a fixture that drives FML's handshake as those Forge builds do, under the JVM's strictest verifier; Forge for 1.12.2 makes the same change itself, so the agent leaves its client alone. The agent leaves a game alone when its Forge doesn't have the code a fix targets; Forge for Minecraft 1.6.4, for example, starts on Java 8 without it.
+For every commit, CI starts these Forge servers on Java 8 in itzg/minecraft-server with the agent on both platforms: Forge 1.7.2 once with the jar and once with the `.so`, each Forge 1.12 build with the jar and 200 players logging in at once, and each Forge build from 1.13.2 to 1.20.1, and NeoForge for 1.20.1, with the jar and 200 players logging in at once through FML's handshake. Forge 1.19.4, 1.20.2 and 1.21.4, and NeoForge 20.4.253 and 21.4.161, start with the agent loading FML's config; the loading window that crashes only exists on clients, so that fix runs against a fixture of FML's two loads, on Java 17 and 21. The Forge servers from 1.13.2 load mods through the patched object holder registry, and a fixture has threads add its handlers at once, on Java 8 and 17. The chunk batch fix runs against a fixture of a client finishing configuration while its network thread answers a chunk batch, on Java 21 and 25; vanilla Minecraft before 26.1 is obfuscated, with names that change in every release, so the agent leaves it alone. The client fix runs against a fixture that drives FML's handshake as those Forge builds do, under the JVM's strictest verifier; Forge for 1.12.2 makes the same change itself, so the agent leaves its client alone. The agent leaves a game alone when its Forge doesn't have the code a fix targets; Forge for Minecraft 1.6.4, for example, starts on Java 8 without it.
 
 ## 📄 License
 

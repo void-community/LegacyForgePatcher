@@ -7,7 +7,8 @@ namespace LegacyForgePatcher;
 /// Repairs Forge where its own code breaks: the tweaker sort that stops Forge for Minecraft 1.7.2 on Java 8u20 and later, the connection state switch that drops
 /// players at login on Forge for Minecraft 1.12, the registry rebuilds that crash Forge for 1.12 and 1.12.1 clients when a proxy moves them to another server, and
 /// the list of handshake messages that drops players at login on Forge for 1.13 to 1.20.1, and the second load of FML's config that crashes Forge and NeoForge
-/// clients at startup from 1.20.1, and the set of object holder handlers that mods fill from several threads in Forge from 1.13.2.
+/// clients at startup from 1.20.1, the set of object holder handlers that mods fill from several threads in Forge from 1.13.2, and the chunk batch answer that drops
+/// Minecraft clients from 1.20.5 when it arrives before play is set up.
 /// </summary>
 public sealed class PatcherAgent : JavaAgent
 {
@@ -70,6 +71,24 @@ public sealed class PatcherAgent : JavaAgent
         .Method(name: "accept")
         .RedirectInvocation(InjectSnapshot, RegistrySnapshots.Name);
 
+    /// <summary>
+    /// Points the <c>send</c> call in Minecraft's <c>ClientPacketListener.handleChunkBatchFinished</c> at <c>legacyforgepatcher.ClientPackets</c>, which sends from the client
+    /// thread. The network thread answers a chunk batch at once, and from Minecraft 1.20.5 an answer that lands between the client thread sending the end of configuration
+    /// and switching outgoing packets to play meets a pipeline with no outgoing protocol, and the client drops its connection. It applies where the game runs with
+    /// Mojang's names: Forge from 1.20.6, NeoForge and Minecraft from 26.1.
+    /// </summary>
+    internal static readonly ClassPatch ChunkBatchAnswer = ClassPatch.For(className: "net/minecraft/client/multiplayer/ClientPacketListener")
+        .Method(name: "handleChunkBatchFinished", descriptor: "(Lnet/minecraft/network/protocol/game/ClientboundChunkBatchFinishedPacket;)V")
+        .RedirectInvocation(
+            JavaMethod.Virtual(
+                owner: "net/minecraft/client/multiplayer/ClientPacketListener",
+                name: "send",
+                descriptor: "(Lnet/minecraft/network/protocol/Packet;)V"
+            ),
+            // The helper takes Object parameters because the bootstrap loader that defines it can't see Minecraft's classes.
+            JavaMethod.Static(owner: "legacyforgepatcher/ClientPackets", name: "send", descriptor: "(Ljava/lang/Object;Ljava/lang/Object;)V")
+        );
+
     /// <inheritdoc/>
     public override void Configure(AgentContext context)
     {
@@ -80,6 +99,7 @@ public sealed class PatcherAgent : JavaAgent
         context.DefineClass(JavaClasses.Legacyforgepatcher.ConnectionStates, ClassLoaderTarget.Bootstrap);
         context.DefineClass(JavaClasses.Legacyforgepatcher.ClientThread, ClassLoaderTarget.Bootstrap);
         context.DefineClass(JavaClasses.Legacyforgepatcher.ModLoaderConfigs, ClassLoaderTarget.Bootstrap);
+        context.DefineClass(JavaClasses.Legacyforgepatcher.ClientPackets, ClassLoaderTarget.Bootstrap);
         // Forge's handshake calls this one by the descriptor of a Guava type, which only Forge's loader can resolve.
         context.DefineClass(RegistrySnapshots.Definition, ClassLoaderTarget.PatchedClassLoader);
         context.Patch(TweakSort);
@@ -94,5 +114,6 @@ public sealed class PatcherAgent : JavaAgent
             context.Patch(patch);
 
         context.Patch(ObjectHolderHandlers.Patch);
+        context.Patch(ChunkBatchAnswer);
     }
 }
