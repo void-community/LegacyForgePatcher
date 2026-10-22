@@ -31,7 +31,7 @@ CI must account for every configured platform. Never weaken tests or skip source
 
 ## Commits and releases
 
-Use Conventional Commits with a scope, a gitmoji after the scope, and past-tense subjects for completed work. Allowed types: feat, fix, perf, deps, revert, docs, style, chore, refactor, test, build, ci. Use feat/fix for production source behavior. Include a commit body describing observable behavior changes, including "none" when appropriate.
+Use Conventional Commits with a scope, a gitmoji after the scope, and past-tense subjects for completed work. Allowed types: feat, fix, perf, deps, revert, docs, style, chore, refactor, test, build, ci. Use feat/fix for production source behavior.
 
 Examples: `fix(agent): 🐛 patched FML's tweak sort on Java 8u20 and later`, `ci(test): ✅ started Forge servers with the published agent`.
 
