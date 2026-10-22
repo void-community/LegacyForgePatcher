@@ -2,8 +2,6 @@
   <PropertyGroup>
     <JvmBridgeAgent>true</JvmBridgeAgent>
     <PublishAot>true</PublishAot>
-    <!-- The .NET 11 SDK fails publishing a native library with its documentation file, which the agent doesn't need. -->
-    <PublishDocumentationFile>false</PublishDocumentationFile>
     <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
     <Description>A native JVM agent that lets Forge for Minecraft 1.7.2 launch on Java 8u20 and later.</Description>
   </PropertyGroup>
