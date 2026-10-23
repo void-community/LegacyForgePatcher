@@ -35,7 +35,20 @@ jobs:
             cp "$agent" "artifacts/release/legacyforgepatcher-$platform.so"
           done
           ls artifacts/release
+      # GitHub refuses to let this token create the release's tag while main's head has other workflow files than this commit, as it does once a commit
+      # that changes a workflow lands while this run tests. That commit's own run publishes the newer agents instead.
+      - name: Check that main runs this commit's workflows
+        id: workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          changed="$(gh api "repos/$GITHUB_REPOSITORY/compare/$GITHUB_SHA...main" --jq '[.files[].filename | select(startswith(".github/workflows/"))] | join(", ")')"
+          if [ -n "$changed" ]; then
+            echo "::notice::Main has changed $changed since this commit, so its own run publishes the release instead of this one."
+            echo "superseded=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Publish the validated agents
+        if: steps.workflows.outputs.superseded != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "v$VERSION" artifacts/release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "v$VERSION" --generate-notes --latest
