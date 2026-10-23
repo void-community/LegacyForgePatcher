@@ -1,7 +1,7 @@
 using JvmBridge.Agents;
 using JvmBridge.ClassFiles;
 
-namespace LegacyForgePatcher;
+namespace ModLoaderFixes;
 
 /// <summary>
 /// Makes the set of object holder handlers that Forge's <c>ObjectHolderRegistry</c> keeps a concurrent one. <c>addHandler</c> adds to a plain static

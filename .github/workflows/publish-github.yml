@@ -10,7 +10,7 @@ permissions:
   contents: read
 jobs:
   publish:
-    if: github.repository == 'void-community/LegacyForgePatcher' && github.ref == 'refs/heads/main'
+    if: github.repository == 'void-community/ModLoaderFixes' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-26.04
     permissions:
       contents: write
@@ -29,10 +29,10 @@ jobs:
       - name: Name the validated agents after their platforms
         run: |
           mkdir -p artifacts/release
-          cp artifacts/jar/LegacyForgePatcher.jar artifacts/release/legacyforgepatcher.jar
-          for agent in artifacts/agent/*/LegacyForgePatcher.so; do
+          cp artifacts/jar/ModLoaderFixes.jar artifacts/release/modloaderfixes.jar
+          for agent in artifacts/agent/*/ModLoaderFixes.so; do
             platform="$(basename "$(dirname "$agent")")"
-            cp "$agent" "artifacts/release/legacyforgepatcher-$platform.so"
+            cp "$agent" "artifacts/release/modloaderfixes-$platform.so"
           done
           ls artifacts/release
       # GitHub refuses to let this token create the release's tag while main's head has other workflow files than this commit, as it does once a commit

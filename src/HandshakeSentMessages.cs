@@ -1,6 +1,6 @@
 using JvmBridge.Agents;
 
-namespace LegacyForgePatcher;
+namespace ModLoaderFixes;
 
 /// <summary>
 /// Makes the list of login messages that Forge's handshake handler waits on a <c>CopyOnWriteArrayList</c>. The server thread adds to it while the network thread

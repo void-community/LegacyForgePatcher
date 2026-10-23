@@ -1,13 +1,13 @@
 using JvmBridge.Agents;
 using JvmBridge.ClassFiles;
 
-namespace LegacyForgePatcher;
+namespace ModLoaderFixes;
 
 /// <summary>
 /// Makes FML read <c>fml.toml</c> once. Forge for Minecraft 1.20.1 to 1.21.4 and NeoForge load the config twice while the game starts, and the early loading
 /// window starts reading it between the two loads. <c>FMLConfig.loadFrom</c> stores a new, empty config before it reads the file into it, so a read on the
 /// window's thread in between finds no value, and the client crashes unboxing it. The patches point <c>load</c>'s call of <c>loadFrom</c> at
-/// <c>legacyforgepatcher.ModLoaderConfigs</c>, which skips it when the config is loaded already.
+/// <c>modloaderfixes.ModLoaderConfigs</c>, which skips it when the config is loaded already.
 /// </summary>
 internal static class ModLoaderConfigurationLoad
 {
@@ -22,10 +22,10 @@ internal static class ModLoaderConfigurationLoad
     [
         .. new[] { "net/minecraftforge/fml/loading/FMLConfig", "net/neoforged/fml/loading/FMLConfig" }.Select(
             static className => ClassPatch.For(className)
-                .AddFieldGetter(field: "configData", name: "legacyforgepatcher$configData", returns: "Ljava/lang/Object;")
-                .AddInvoker(LoadFrom, LoadFromDescriptor, name: "legacyforgepatcher$loadFrom")
+                .AddFieldGetter(field: "configData", name: "modloaderfixes$configData", returns: "Ljava/lang/Object;")
+                .AddInvoker(LoadFrom, LoadFromDescriptor, name: "modloaderfixes$loadFrom")
                 .Method(name: "load", descriptor: "()V")
-                .RedirectInvocation(JavaMethod.Virtual(className, LoadFrom, LoadFromDescriptor), toOwner: "legacyforgepatcher/ModLoaderConfigs")
+                .RedirectInvocation(JavaMethod.Virtual(className, LoadFrom, LoadFromDescriptor), toOwner: "modloaderfixes/ModLoaderConfigs")
         ),
     ];
 }

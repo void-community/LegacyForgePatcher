@@ -7,7 +7,7 @@
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <Authors>void-community</Authors>
-    <RepositoryUrl>https://github.com/void-community/LegacyForgePatcher</RepositoryUrl>
+    <RepositoryUrl>https://github.com/void-community/ModLoaderFixes</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
   <!-- Matches caunt/NetAgents: UTC year.month.day and a 1000..9999 time-of-day bucket. -->

@@ -1,7 +1,7 @@
 using JvmBridge.Agents;
 using JvmBridge.ClassFiles;
 
-namespace LegacyForgePatcher;
+namespace ModLoaderFixes;
 
 /// <summary>
 /// Builds FML's config without NightConfig's autosave and autoreload, as Forge for Minecraft 1.20.1 does. Forge from 1.13.2 to 1.19.4 builds it with both, so on a

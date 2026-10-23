@@ -1,9 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/LegacyForgePatcher.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/LegacyForgePatcher.Tests/LegacyForgePatcher.Tests.csproj" />
-    <Project Path="tests/LegacyForgePatcher.IntegrationTests/LegacyForgePatcher.IntegrationTests.csproj" />
-  </Folder>
-</Solution>

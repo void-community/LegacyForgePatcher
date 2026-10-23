@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ModLoaderFixes.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ModLoaderFixes.Tests/ModLoaderFixes.Tests.csproj" />
+    <Project Path="tests/ModLoaderFixes.IntegrationTests/ModLoaderFixes.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

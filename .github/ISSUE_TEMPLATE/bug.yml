@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a legacy Forge launch the agent doesn't fix, or one it breaks.
+description: Report a Forge, NeoForge or Minecraft bug the agent doesn't fix, or one it causes.
 body:
   - type: textarea
     id: environment

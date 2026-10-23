@@ -27,8 +27,8 @@ jobs:
           dotnet-version: 10.0.402
       - name: Build and run unit tests
         run: |
-          dotnet build LegacyForgePatcher.slnx -c Release
-          dotnet test LegacyForgePatcher.slnx -c Release --no-build
+          dotnet build ModLoaderFixes.slnx -c Release
+          dotnet test ModLoaderFixes.slnx -c Release --no-build
   agent:
     strategy:
       fail-fast: false
@@ -68,21 +68,21 @@ jobs:
           dotnet publish src -c Release -r "$TARGET_RID" $SYSROOT_PROPERTIES -o "artifacts/agent/$TARGET_RID"
       - name: Check the agent's glibc floor
         run: |
-          floor="$(readelf -V "artifacts/agent/$TARGET_RID/LegacyForgePatcher.so" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)"
-          echo "LegacyForgePatcher.so asks for $floor at most"
+          floor="$(readelf -V "artifacts/agent/$TARGET_RID/ModLoaderFixes.so" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)"
+          echo "ModLoaderFixes.so asks for $floor at most"
           if [ "$(printf '%s\n' GLIBC_2.17 "$floor" | sort -V | tail -1)" != GLIBC_2.17 ]; then
-            echo "::error::LegacyForgePatcher.so asks for $floor, newer than glibc 2.17."
+            echo "::error::ModLoaderFixes.so asks for $floor, newer than glibc 2.17."
             exit 1
           fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: agent-${{ matrix.rid }}
-          path: artifacts/agent/*/LegacyForgePatcher.so
+          path: artifacts/agent/*/ModLoaderFixes.so
           if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: jar-${{ matrix.rid }}
-          path: artifacts/agent/*/LegacyForgePatcher.jar
+          path: artifacts/agent/*/ModLoaderFixes.jar
           if-no-files-found: error
   jar:
     needs: agent
@@ -101,9 +101,9 @@ jobs:
           merge-multiple: true
       # The combined jar holds the library of every platform, so one file serves java -javaagent anywhere. The tests and the release use this very file.
       - name: Combine the jars of the platforms into one
-        run: dotnet msbuild src/LegacyForgePatcher.csproj -restore -t:JvmBridgeMergeAgentJars -p:JvmBridgeAgentJars="../artifacts/agent/*/LegacyForgePatcher.jar" -p:JvmBridgeAgentJarOutput=../artifacts/jar/LegacyForgePatcher.jar
+        run: dotnet msbuild src/ModLoaderFixes.csproj -restore -t:JvmBridgeMergeAgentJars -p:JvmBridgeAgentJars="../artifacts/agent/*/ModLoaderFixes.jar" -p:JvmBridgeAgentJarOutput=../artifacts/jar/ModLoaderFixes.jar
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: jar
-          path: artifacts/jar/LegacyForgePatcher.jar
+          path: artifacts/jar/ModLoaderFixes.jar
           if-no-files-found: error

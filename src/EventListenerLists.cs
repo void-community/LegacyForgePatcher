@@ -1,7 +1,7 @@
 using JvmBridge.Agents;
 using JvmBridge.ClassFiles;
 
-namespace LegacyForgePatcher;
+namespace ModLoaderFixes;
 
 /// <summary>
 /// Makes EventBus build a missing listener list without holding the lock on its map, as EventBus 0.10.5 does. <c>EventListenerHelper.getListenerListInternal</c>
@@ -13,7 +13,7 @@ namespace LegacyForgePatcher;
 /// </summary>
 internal static class EventListenerLists
 {
-    private const string Helper = "legacyforgepatcher/EventListeners";
+    private const string Helper = "modloaderfixes/EventListeners";
     private const string HelperClass = "net/minecraftforge/eventbus/api/EventListenerHelper";
     private const string Method = "getListenerListInternal";
     private const string MethodDescriptor = "(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;";
@@ -33,9 +33,9 @@ internal static class EventListenerLists
             .RedirectInvocation(ComputeIfAbsent, Helper),
         // The helper takes and gives back the lock, reads the map and builds the list itself, all private here, through the methods this patch adds.
         ClassPatch.For(HelperClass)
-            .AddFieldGetter(field: "lock", name: "legacyforgepatcher$lock")
-            .AddFieldGetter(field: "listeners", name: "legacyforgepatcher$listeners")
-            .AddInvoker(ComputeListenerList.Name, MethodDescriptor, name: "legacyforgepatcher$computeListenerList")
+            .AddFieldGetter(field: "lock", name: "modloaderfixes$lock")
+            .AddFieldGetter(field: "listeners", name: "modloaderfixes$listeners")
+            .AddInvoker(ComputeListenerList.Name, MethodDescriptor, name: "modloaderfixes$computeListenerList")
             .Method(Method, MethodDescriptor)
             .When(static body => body.Calls(WriteLock) && body.Calls(Put) && !body.Calls(PutIfAbsent))
             .RedirectInvocation(ComputeListenerList, Helper),

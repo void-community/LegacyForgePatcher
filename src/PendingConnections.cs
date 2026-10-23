@@ -1,7 +1,7 @@
 using JvmBridge.Agents;
 using JvmBridge.ClassFiles;
 
-namespace LegacyForgePatcher;
+namespace ModLoaderFixes;
 
 /// <summary>
 /// Lets the network tick of Minecraft 1.7 leave a connection alone until it has a channel, as Minecraft 1.8 does. <c>NetworkSystem</c>'s channel initializer adds
@@ -11,12 +11,12 @@ namespace LegacyForgePatcher;
 /// </summary>
 internal static class PendingConnections
 {
-    private const string Helper = "legacyforgepatcher/Connections";
+    private const string Helper = "modloaderfixes/Connections";
     private const string Manager = "net/minecraft/network/NetworkManager";
 
     /// <summary>
     /// Gets the patch of <c>NetworkSystem.networkTick</c>: its check whether a manager's channel is open, and its processing of the manager's packets, go to
-    /// <c>legacyforgepatcher.Connections</c>, which counts a manager without a channel as open and skips its processing until it has one. Reporting it open alone
+    /// <c>modloaderfixes.Connections</c>, which counts a manager without a channel as open and skips its processing until it has one. Reporting it open alone
     /// would not do, because the processing reads the channel at once.
     /// </summary>
     internal static ClassPatch Patch { get; } = ClassPatch.For(className: "net/minecraft/network/NetworkSystem")

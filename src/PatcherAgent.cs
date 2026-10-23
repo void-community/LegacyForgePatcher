@@ -1,7 +1,7 @@
 using JvmBridge.Agents;
 using JvmBridge.ClassFiles;
 
-namespace LegacyForgePatcher;
+namespace ModLoaderFixes;
 
 /// <summary>
 /// Repairs Forge where its own code breaks: the tweaker sort that stops Forge for Minecraft 1.7.2 on Java 8u20 and later, the connection state switch that drops
@@ -22,24 +22,24 @@ public sealed class PatcherAgent : JavaAgent
     );
 
     /// <summary>
-    /// Points FML's <c>Collections.sort</c> call at <c>legacyforgepatcher.Collections</c>. FML sorts LaunchWrapper's tweakers while LaunchWrapper iterates
+    /// Points FML's <c>Collections.sort</c> call at <c>modloaderfixes.Collections</c>. FML sorts LaunchWrapper's tweakers while LaunchWrapper iterates
     /// them, and Java from 8u20 counts a sort as a structural change, so the iteration throws <c>ConcurrentModificationException</c>.
     /// </summary>
     internal static readonly ClassPatch TweakSort = ClassPatch.For(className: "cpw/mods/fml/relauncher/CoreModManager")
         .Method(name: "sortTweakList", descriptor: "()V")
         .RedirectInvocation(
             JavaMethod.Static(owner: "java/util/Collections", name: "sort", descriptor: "(Ljava/util/List;Ljava/util/Comparator;)V"),
-            toOwner: "legacyforgepatcher/Collections"
+            toOwner: "modloaderfixes/Collections"
         );
 
     /// <summary>
-    /// Points the <c>setConnectionState(PLAY)</c> call in FML's <c>NetworkDispatcher.serverInitiateHandshake</c> at <c>legacyforgepatcher.ConnectionStates</c>, which makes the
+    /// Points the <c>setConnectionState(PLAY)</c> call in FML's <c>NetworkDispatcher.serverInitiateHandshake</c> at <c>modloaderfixes.ConnectionStates</c>, which makes the
     /// switch on the connection's event loop. FML makes it at once on the server thread while the login packets it just sent are still queued on that loop, so the
     /// loop encodes them in the play state, which has no id for them, and the player is dropped with <c>Can't serialize unregistered packet</c>.
     /// </summary>
     internal static readonly ClassPatch HandshakeState = ClassPatch.For(className: "net/minecraftforge/fml/common/network/handshake/NetworkDispatcher")
         .Method(name: "serverInitiateHandshake", descriptor: "()I")
-        .RedirectInvocation(SetConnectionState, toOwner: "legacyforgepatcher/ConnectionStates", toName: "setConnectionState");
+        .RedirectInvocation(SetConnectionState, toOwner: "modloaderfixes/ConnectionStates", toName: "setConnectionState");
 
     /// <summary>Forge's revert of the registries to their frozen state, which its client handshake calls when a proxy resets the handshake.</summary>
     internal static readonly JavaMethod RevertToFrozen = JavaMethod.Static(owner: "net/minecraftforge/registries/GameData", name: "revertToFrozen", descriptor: "()V");
@@ -52,7 +52,7 @@ public sealed class PatcherAgent : JavaAgent
     );
 
     /// <summary>
-    /// Points the <c>GameData.revertToFrozen()</c> call of FML's <c>DONE</c> handshake state at <c>legacyforgepatcher.ClientThread</c>, which schedules it on the client
+    /// Points the <c>GameData.revertToFrozen()</c> call of FML's <c>DONE</c> handshake state at <c>modloaderfixes.ClientThread</c>, which schedules it on the client
     /// thread. Forge for Minecraft 1.12 and 1.12.1 reverts the registries on the network thread when a proxy resets the handshake to move the player to another server,
     /// while the client thread ticks the world and the player, which read them, and the game can crash. Forge for 1.12.2 schedules it itself, so its class is skipped.
     /// </summary>
@@ -61,7 +61,7 @@ public sealed class PatcherAgent : JavaAgent
         .RedirectInvocation(RevertToFrozen, ClientThread);
 
     /// <summary>
-    /// Points the <c>GameData.injectSnapshot</c> call of FML's <c>WAITINGSERVERCOMPLETE</c> handshake state at <c>legacyforgepatcher.ClientThread</c>, which runs it on
+    /// Points the <c>GameData.injectSnapshot</c> call of FML's <c>WAITINGSERVERCOMPLETE</c> handshake state at <c>modloaderfixes.ClientThread</c>, which runs it on
     /// the client thread and returns its result, for the same reason as <see cref="RegistryRevert"/>. The client thread runs scheduled tasks in order, so a revert still
     /// comes before the injection that follows it.
     /// </summary>
@@ -70,7 +70,7 @@ public sealed class PatcherAgent : JavaAgent
         .RedirectInvocation(InjectSnapshot, ClientThread);
 
     /// <summary>
-    /// Points the <c>send</c> call in Minecraft's <c>ClientPacketListener.handleChunkBatchFinished</c> at <c>legacyforgepatcher.ClientPackets</c>, which sends from the client
+    /// Points the <c>send</c> call in Minecraft's <c>ClientPacketListener.handleChunkBatchFinished</c> at <c>modloaderfixes.ClientPackets</c>, which sends from the client
     /// thread. The network thread answers a chunk batch at once, and from Minecraft 1.20.5 an answer that lands between the client thread sending the end of configuration
     /// and switching outgoing packets to play meets a pipeline with no outgoing protocol, and the client drops its connection. It applies where the game runs with
     /// Mojang's names: Forge from 1.20.6, NeoForge and Minecraft from 26.1.
@@ -83,22 +83,22 @@ public sealed class PatcherAgent : JavaAgent
                 name: "send",
                 descriptor: "(Lnet/minecraft/network/protocol/Packet;)V"
             ),
-            toOwner: "legacyforgepatcher/ClientPackets"
+            toOwner: "modloaderfixes/ClientPackets"
         );
 
-    private const string ClientThread = "legacyforgepatcher/ClientThread";
+    private const string ClientThread = "modloaderfixes/ClientThread";
 
     /// <summary>Gets the helpers that the patches call, all compiled from <c>src/java</c>.</summary>
     internal static IReadOnlyList<JavaClassDefinition> Helpers { get; } =
     [
-        JavaClasses.Legacyforgepatcher.Collections,
-        JavaClasses.Legacyforgepatcher.ConnectionStates,
-        JavaClasses.Legacyforgepatcher.ClientThread,
-        JavaClasses.Legacyforgepatcher.ModLoaderConfigs,
-        JavaClasses.Legacyforgepatcher.ClientPackets,
-        JavaClasses.Legacyforgepatcher.EventListeners,
-        JavaClasses.Legacyforgepatcher.Connections,
-        JavaClasses.Legacyforgepatcher.ClassHierarchyCache,
+        JavaClasses.Modloaderfixes.Collections,
+        JavaClasses.Modloaderfixes.ConnectionStates,
+        JavaClasses.Modloaderfixes.ClientThread,
+        JavaClasses.Modloaderfixes.ModLoaderConfigs,
+        JavaClasses.Modloaderfixes.ClientPackets,
+        JavaClasses.Modloaderfixes.EventListeners,
+        JavaClasses.Modloaderfixes.Connections,
+        JavaClasses.Modloaderfixes.ClassHierarchyCache,
     ];
 
     /// <summary>Gets every patch the agent registers.</summary>
@@ -134,6 +134,6 @@ public sealed class PatcherAgent : JavaAgent
 
     private static bool IsBootstrapHelper(JavaClassDefinition helper)
     {
-        return helper == JavaClasses.Legacyforgepatcher.Collections || helper == JavaClasses.Legacyforgepatcher.ClassHierarchyCache;
+        return helper == JavaClasses.Modloaderfixes.Collections || helper == JavaClasses.Modloaderfixes.ClassHierarchyCache;
     }
 }

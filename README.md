@@ -1,12 +1,12 @@
-# 🔧 LegacyForgePatcher
+# 🔧 ModLoaderFixes
 
-[![CI](https://img.shields.io/github/actions/workflow/status/void-community/LegacyForgePatcher/runnable-commit.yml?branch=main&style=for-the-badge)](https://github.com/void-community/LegacyForgePatcher/actions/workflows/runnable-commit.yml)
-[![Release](https://img.shields.io/github/v/release/void-community/LegacyForgePatcher?style=for-the-badge)](https://github.com/void-community/LegacyForgePatcher/releases/latest)
-[![License](https://img.shields.io/github/license/void-community/LegacyForgePatcher?style=for-the-badge)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/void-community/ModLoaderFixes/runnable-commit.yml?branch=main&style=for-the-badge)](https://github.com/void-community/ModLoaderFixes/actions/workflows/runnable-commit.yml)
+[![Release](https://img.shields.io/github/v/release/void-community/ModLoaderFixes?style=for-the-badge)](https://github.com/void-community/ModLoaderFixes/releases/latest)
+[![License](https://img.shields.io/github/license/void-community/ModLoaderFixes?style=for-the-badge)](LICENSE)
 
 **Fix Forge, NeoForge and Minecraft servers and clients that break on current Java, under load or behind a proxy.** ☕
 
-LegacyForgePatcher is a native Java agent that repairs these while the game loads. It changes no game, Forge or NeoForge files and needs no .NET installation. ✨
+ModLoaderFixes is a native Java agent that repairs these while the game loads. It changes no game, Forge or NeoForge files and needs no .NET installation. ✨
 
 ## 🩹 What it fixes
 
@@ -95,44 +95,44 @@ Caused by: java.lang.NullPointerException
 
 ## 🚀 Usage
 
-Download the agent from the [**latest release**](https://github.com/void-community/LegacyForgePatcher/releases/latest). One jar serves Linux x64 and ARM64:
+Download the agent from the [**latest release**](https://github.com/void-community/ModLoaderFixes/releases/latest). One jar serves Linux x64 and ARM64:
 
 ```sh
-curl -fsSL -O https://github.com/void-community/LegacyForgePatcher/releases/latest/download/legacyforgepatcher.jar
+curl -fsSL -O https://github.com/void-community/ModLoaderFixes/releases/latest/download/modloaderfixes.jar
 ```
 
 Add it to the Java arguments of the server or the launcher profile with `-javaagent`:
 
 ```sh
-java -javaagent:legacyforgepatcher.jar -jar forge-1.12.2-14.23.5.2859.jar nogui
+java -javaagent:modloaderfixes.jar -jar forge-1.12.2-14.23.5.2859.jar nogui
 ```
 
 🐳 With [**itzg/minecraft-server**](https://github.com/itzg/docker-minecraft-server), mount the jar and pass it through `JVM_OPTS`:
 
 ```sh
 docker run -d -e EULA=TRUE -e TYPE=FORGE -e VERSION=1.12.2 \
-  -e JVM_OPTS=-javaagent:/patcher/legacyforgepatcher.jar \
-  -v "$PWD/legacyforgepatcher.jar:/patcher/legacyforgepatcher.jar:ro" \
+  -e JVM_OPTS=-javaagent:/patcher/modloaderfixes.jar \
+  -v "$PWD/modloaderfixes.jar:/patcher/modloaderfixes.jar:ro" \
   itzg/minecraft-server:java8
 ```
 
 ✅ The game's log confirms each fix when Forge loads the code it repairs; on Forge 1.12 that is at the first connection:
 
 ```text
-LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager (sortTweakList()V: 1 invocation of java/util/Collections.sort redirected)
-LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/NetworkDispatcher (serverInitiateHandshake()I: 1 invocation of net/minecraft/network/NetworkManager.func_150723_a redirected)
-LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/FMLHandshakeClientState$4 (accept: 1 invocation of net/minecraftforge/registries/GameData.injectSnapshot redirected)
-LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/FMLHandshakeClientState$7 (accept: 1 invocation of net/minecraftforge/registries/GameData.revertToFrozen redirected)
-LegacyForgePatcher: patched net/minecraftforge/network/HandshakeHandler (<init>: 1 new java/util/ArrayList replaced by new java/util/concurrent/CopyOnWriteArrayList stored in sentMessages)
-LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (load()V: 1 invocation of net/minecraftforge/fml/loading/FMLConfig.loadFrom redirected)
-LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (legacyforgepatcher$configData()Ljava/lang/Object;: getter of field configData added; legacyforgepatcher$loadFrom(Ljava/nio/file/Path;)V: invoker of loadFrom(Ljava/nio/file/Path;)V added)
-LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: 1 new java/util/HashSet() replaced by java/util/concurrent/ConcurrentHashMap.newKeySet() stored in objectHolders)
-LegacyForgePatcher: patched net/minecraft/client/multiplayer/ClientPacketListener (handleChunkBatchFinished(Lnet/minecraft/network/protocol/game/ClientboundChunkBatchFinishedPacket;)V: 1 invocation of net/minecraft/client/multiplayer/ClientPacketListener.send redirected)
-LegacyForgePatcher: patched net/minecraftforge/eventbus/api/EventListenerHelper (getListenerListInternal(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: 1 invocation of net/minecraftforge/eventbus/api/EventListenerHelper.computeListenerList redirected)
-LegacyForgePatcher: patched net/minecraftforge/eventbus/api/EventListenerHelper (legacyforgepatcher$lock()Ljava/util/concurrent/locks/ReadWriteLock;: getter of field lock added; legacyforgepatcher$listeners()Ljava/util/Map;: getter of field listeners added; legacyforgepatcher$computeListenerList(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: invoker of computeListenerList(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList; added)
-LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autosave removed; loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autoreload removed)
-LegacyForgePatcher: patched net/minecraft/network/NetworkSystem (func_151269_c()V: 1 invocation of net/minecraft/network/NetworkManager.func_150724_d redirected; func_151269_c()V: 1 invocation of net/minecraft/network/NetworkManager.func_74428_b redirected)
-LegacyForgePatcher: patched cpw/mods/modlauncher/TransformerClassWriter (<clinit>()V: 1 new java/util/HashMap() replaced by legacyforgepatcher/ClassHierarchyCache.parents() stored in classParents; <clinit>()V: 1 new java/util/HashMap() replaced by legacyforgepatcher/ClassHierarchyCache.hierarchies() stored in classHierarchies; <clinit>()V: 1 new java/util/HashMap() replaced by legacyforgepatcher/ClassHierarchyCache.interfaces() stored in isInterface)
+ModLoaderFixes: patched cpw/mods/fml/relauncher/CoreModManager (sortTweakList()V: 1 invocation of java/util/Collections.sort redirected)
+ModLoaderFixes: patched net/minecraftforge/fml/common/network/handshake/NetworkDispatcher (serverInitiateHandshake()I: 1 invocation of net/minecraft/network/NetworkManager.func_150723_a redirected)
+ModLoaderFixes: patched net/minecraftforge/fml/common/network/handshake/FMLHandshakeClientState$4 (accept: 1 invocation of net/minecraftforge/registries/GameData.injectSnapshot redirected)
+ModLoaderFixes: patched net/minecraftforge/fml/common/network/handshake/FMLHandshakeClientState$7 (accept: 1 invocation of net/minecraftforge/registries/GameData.revertToFrozen redirected)
+ModLoaderFixes: patched net/minecraftforge/network/HandshakeHandler (<init>: 1 new java/util/ArrayList replaced by new java/util/concurrent/CopyOnWriteArrayList stored in sentMessages)
+ModLoaderFixes: patched net/minecraftforge/fml/loading/FMLConfig (load()V: 1 invocation of net/minecraftforge/fml/loading/FMLConfig.loadFrom redirected)
+ModLoaderFixes: patched net/minecraftforge/fml/loading/FMLConfig (modloaderfixes$configData()Ljava/lang/Object;: getter of field configData added; modloaderfixes$loadFrom(Ljava/nio/file/Path;)V: invoker of loadFrom(Ljava/nio/file/Path;)V added)
+ModLoaderFixes: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: 1 new java/util/HashSet() replaced by java/util/concurrent/ConcurrentHashMap.newKeySet() stored in objectHolders)
+ModLoaderFixes: patched net/minecraft/client/multiplayer/ClientPacketListener (handleChunkBatchFinished(Lnet/minecraft/network/protocol/game/ClientboundChunkBatchFinishedPacket;)V: 1 invocation of net/minecraft/client/multiplayer/ClientPacketListener.send redirected)
+ModLoaderFixes: patched net/minecraftforge/eventbus/api/EventListenerHelper (getListenerListInternal(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: 1 invocation of net/minecraftforge/eventbus/api/EventListenerHelper.computeListenerList redirected)
+ModLoaderFixes: patched net/minecraftforge/eventbus/api/EventListenerHelper (modloaderfixes$lock()Ljava/util/concurrent/locks/ReadWriteLock;: getter of field lock added; modloaderfixes$listeners()Ljava/util/Map;: getter of field listeners added; modloaderfixes$computeListenerList(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: invoker of computeListenerList(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList; added)
+ModLoaderFixes: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autosave removed; loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autoreload removed)
+ModLoaderFixes: patched net/minecraft/network/NetworkSystem (func_151269_c()V: 1 invocation of net/minecraft/network/NetworkManager.func_150724_d redirected; func_151269_c()V: 1 invocation of net/minecraft/network/NetworkManager.func_74428_b redirected)
+ModLoaderFixes: patched cpw/mods/modlauncher/TransformerClassWriter (<clinit>()V: 1 new java/util/HashMap() replaced by modloaderfixes/ClassHierarchyCache.parents() stored in classParents; <clinit>()V: 1 new java/util/HashMap() replaced by modloaderfixes/ClassHierarchyCache.hierarchies() stored in classHierarchies; <clinit>()V: 1 new java/util/HashMap() replaced by modloaderfixes/ClassHierarchyCache.interfaces() stored in isInterface)
 ```
 
 ## 📦 Compatibility
@@ -153,8 +153,8 @@ LegacyForgePatcher: patched cpw/mods/modlauncher/TransformerClassWriter (<clinit
 
 | Platform    | `-javaagent` jar         | `-agentpath` library                |
 |-------------|--------------------------|-------------------------------------|
-| Linux x64   | `legacyforgepatcher.jar` | `legacyforgepatcher-linux-x64.so`   |
-| Linux ARM64 | `legacyforgepatcher.jar` | `legacyforgepatcher-linux-arm64.so` |
+| Linux x64   | `modloaderfixes.jar` | `modloaderfixes-linux-x64.so`   |
+| Linux ARM64 | `modloaderfixes.jar` | `modloaderfixes-linux-arm64.so` |
 
 The agent needs glibc 2.17 or later, as on CentOS and RHEL 7, Ubuntu 18.04 and Debian 10, and everything newer, including all of itzg's images.
 

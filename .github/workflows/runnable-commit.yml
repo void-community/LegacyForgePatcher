@@ -24,7 +24,7 @@ jobs:
       version: ${{ needs.version.outputs.version }}
       timestamp: ${{ needs.version.outputs.timestamp }}
   publish:
-    if: github.repository == 'void-community/LegacyForgePatcher' && github.ref == 'refs/heads/main'
+    if: github.repository == 'void-community/ModLoaderFixes' && github.ref == 'refs/heads/main'
     needs: [version, build, test]
     permissions:
       contents: write
