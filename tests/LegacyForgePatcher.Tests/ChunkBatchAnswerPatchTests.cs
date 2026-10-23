@@ -17,17 +17,6 @@ public sealed class ChunkBatchAnswerPatchTests
     private const string Send = "send";
     private const string SendDescriptor = "(Lnet/minecraft/network/protocol/Packet;)V";
 
-    /// <summary>The compiled helper declares the static method the patch calls, with Minecraft's types, in a class that Java 8 loads.</summary>
-    [Fact]
-    public void HelperDeclaresTheMethodThePatchCalls()
-    {
-        JavaClassFile helper = JavaClassFile.Read(JavaClasses.Legacyforgepatcher.ClientPackets.Bytes.Span);
-
-        Assert.Equal(Helper, helper.Name);
-        Assert.Equal(expected: 52, helper.MajorVersion);
-        Assert.NotNull(helper.FindMethod(Send, HelperDescriptor));
-    }
-
     /// <summary>A listener without the handler, as in Minecraft before chunk batches, is left alone with a reason.</summary>
     [Fact]
     public void PatchLeavesListenersWithoutTheHandler()

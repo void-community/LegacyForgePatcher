@@ -14,48 +14,37 @@ public sealed class EventListenerPatchTests
     private const string ComputeIfAbsentDescriptor = "(Ljava/lang/Object;Ljava/util/function/Function;)Ljava/lang/Object;";
     private const string ComputeListenerList = "computeListenerList";
     private const string Helper = "legacyforgepatcher/EventListeners";
-    private const string HelperComputeIfAbsentDescriptor = "(Ljava/util/Map;Ljava/lang/Object;Ljava/util/function/Function;)Ljava/lang/Object;";
     private const string ListDescriptor = "(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;";
     private const string Map = "java/util/Map";
     private const string Method = "getListenerListInternal";
 
-    /// <summary>The Java helper declares the methods the redirects call, computeListenerList with EventBus's own descriptor, in a class that Java 8 loads.</summary>
-    [Fact]
-    public void HelperDeclaresTheMethodsTheRedirectsCall()
-    {
-        JavaClassFile helper = JavaClassFile.Read(JavaClasses.Legacyforgepatcher.EventListeners.Bytes.Span);
+    private static ClassPatch SynchronizedMapPatch => EventListenerLists.Patches[index: 0];
 
-        Assert.Equal(Helper, helper.Name);
-        Assert.Equal(expected: 52, helper.MajorVersion);
-        Assert.NotNull(helper.FindMethod(ComputeIfAbsent, HelperComputeIfAbsentDescriptor));
-        Assert.NotNull(helper.FindMethod(ComputeListenerList, ListDescriptor));
-    }
-
-    /// <summary>EventBus from 0.10.5 builds the list outside the lock and stores it with putIfAbsent, so it stays as it is: the helper lets go of locks the caller holds.</summary>
-    [Fact]
-    public void PatchLeavesTheFixedEventBusAlone()
-    {
-        ClassPatchResult result = EventListenerLists.Patch.Apply(CreateLockedClassFile(store: "putIfAbsent"));
-
-        Assert.False(result.Changed);
-        Assert.Contains(expectedSubstring: "nothing to change in getListenerListInternal", result.SkippedReason, StringComparison.Ordinal);
-    }
+    private static ClassPatch WriteLockPatch => EventListenerLists.Patches[index: 1];
 
     /// <summary>
-    /// EventBus 0.10.2 to 0.10.4 build it under the write lock and put it in the map; the helper that builds it then takes the lock, the map and computeListenerList,
-    /// so a class that has the shape but not the lock and the map is left alone. The redirect itself runs against the fixtures of <c>EventListenerTests</c>, whose
-    /// EventListenerHelper declares them.
+    /// EventBus 0.10.2 to 0.10.4 build it under the write lock and put it in the map, so building it goes to the helper, and the patch adds the getters and the invoker
+    /// through which the helper reaches the lock, the map and computeListenerList; the patch for the synchronized map leaves the class alone.
     /// </summary>
     [Fact]
-    public void PatchLeavesTheWriteLockShapeWithoutTheLockAndTheMap()
+    public void PatchRedirectsTheBuildUnderTheWriteLock()
     {
-        ClassPatchResult result = EventListenerLists.Patch.Apply(CreateLockedClassFile(store: "put"));
+        byte[] classFile = CreateLockedClassFile(store: "put");
+        ClassPatchResult result = WriteLockPatch.Apply(classFile);
+        byte[] patched = result.Bytes ?? throw new InvalidOperationException(result.ToString());
+        JavaClassFile model = JavaClassFile.Read(patched);
 
-        Assert.False(result.Changed);
-        Assert.Contains(expectedSubstring: "nothing to change in getListenerListInternal", result.SkippedReason, StringComparison.Ordinal);
+        Assert.Equal(expected: 1, result.RedirectedInvocations);
+        Assert.Equal(expected: 3, result.AddedMembers);
+        ClassFileAssert.Calls(patched, Method, Helper, ComputeListenerList, ListDescriptor);
+        ClassFileAssert.DoesNotCall(patched, Method, ClassName, ComputeListenerList, ListDescriptor);
+        Assert.NotNull(model.FindMethod(name: "legacyforgepatcher$lock", descriptor: "()Ljava/util/concurrent/locks/ReadWriteLock;"));
+        Assert.NotNull(model.FindMethod(name: "legacyforgepatcher$listeners", descriptor: "()Ljava/util/Map;"));
+        Assert.NotNull(model.FindMethod(name: "legacyforgepatcher$computeListenerList", ListDescriptor));
+        Assert.False(SynchronizedMapPatch.Apply(classFile).Changed);
     }
 
-    /// <summary>EventBus 0.9.3 to 0.10.1 build the list in a synchronized map's computeIfAbsent, which goes to the helper.</summary>
+    /// <summary>EventBus 0.9.3 to 0.10.1 build the list in a synchronized map's computeIfAbsent, which goes to the helper; the patch for the write lock leaves it alone.</summary>
     [Fact]
     public void PatchRedirectsTheSynchronizedMapsComputeIfAbsent()
     {
@@ -65,16 +54,37 @@ public sealed class EventListenerPatchTests
             .AddMethod(Method, ListDescriptor, code => code.AConstNull().AConstNull().AConstNull().Invoke(computeIfAbsent).AReturn())
             .ToArray();
 
-        ClassPatchResult result = EventListenerLists.Patch.Apply(classFile);
+        ClassPatchResult result = SynchronizedMapPatch.Apply(classFile);
         byte[] patched = result.Bytes ?? throw new InvalidOperationException(result.ToString());
 
-        Assert.Equal(expected: 1, result.AppliedEdits);
-        ClassFileAssert.Calls(patched, Method, Helper, ComputeIfAbsent, HelperComputeIfAbsentDescriptor);
+        Assert.Equal(expected: 1, result.RedirectedInvocations);
+        ClassFileAssert.Calls(
+            patched,
+            Method,
+            Helper,
+            ComputeIfAbsent,
+            descriptor: "(Ljava/util/Map;Ljava/lang/Object;Ljava/util/function/Function;)Ljava/lang/Object;"
+        );
         ClassFileAssert.DoesNotCall(patched, Method, Map, ComputeIfAbsent, ComputeIfAbsentDescriptor);
+        Assert.False(WriteLockPatch.Apply(classFile).Changed);
     }
 
-    // A getListenerListInternal that takes the write lock, builds the list with the private computeListenerList and stores it in the map with the given method;
-    // ClassFileWriter declares no fields, so the class has no lock or map of its own.
+    /// <summary>EventBus from 0.10.5 builds the list outside the lock and stores it with putIfAbsent, so both patches leave it alone and say why.</summary>
+    [Fact]
+    public void PatchesLeaveTheFixedEventBusAlone()
+    {
+        byte[] classFile = CreateLockedClassFile(store: "putIfAbsent");
+        ClassPatchResult synchronizedMap = SynchronizedMapPatch.Apply(classFile);
+        ClassPatchResult writeLock = WriteLockPatch.Apply(classFile);
+
+        Assert.False(synchronizedMap.Changed);
+        Assert.False(writeLock.Changed);
+        Assert.Contains(expectedSubstring: "requires", synchronizedMap.SkippedReason, StringComparison.Ordinal);
+        Assert.Contains(expectedSubstring: "!putIfAbsent()", writeLock.SkippedReason, StringComparison.Ordinal);
+    }
+
+    // An EventListenerHelper with EventBus 0.10.2's private lock, map and computeListenerList, whose getListenerListInternal takes the write lock, builds the list and
+    // stores it in the map with the given method.
     private static byte[] CreateLockedClassFile(string store)
     {
         JavaMethod writeLock = JavaMethod.Interface(owner: "java/util/concurrent/locks/ReadWriteLock", name: "writeLock", descriptor: "()Ljava/util/concurrent/locks/Lock;");
@@ -82,6 +92,8 @@ public sealed class EventListenerPatchTests
         JavaMethod put = JavaMethod.Interface(Map, store, descriptor: "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
 
         return new ClassFileWriter(ClassName)
+            .AddField(name: "lock", descriptor: "Ljava/util/concurrent/locks/ReadWriteLock;", accessFlags: 0x001a)
+            .AddField(name: "listeners", descriptor: "Ljava/util/Map;", accessFlags: 0x001a)
             .AddMethod(
                 Method,
                 ListDescriptor,

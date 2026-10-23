@@ -14,17 +14,6 @@ public sealed class HandshakeStatePatchTests
     private const string HelperName = "setConnectionState";
     private const string ServerInitiateHandshake = "serverInitiateHandshake";
 
-    /// <summary>The compiled helper declares the static method the patch calls, with Minecraft's types, in a class that Java 8 loads.</summary>
-    [Fact]
-    public void HelperDeclaresTheMethodThePatchCalls()
-    {
-        JavaClassFile helper = JavaClassFile.Read(JavaClasses.Legacyforgepatcher.ConnectionStates.Bytes.Span);
-
-        Assert.Equal(JavaClasses.Legacyforgepatcher.ConnectionStates.Name, helper.Name);
-        Assert.Equal(expected: 52, helper.MajorVersion);
-        Assert.NotNull(helper.FindMethod(HelperName, HelperDescriptor));
-    }
-
     /// <summary>A NetworkDispatcher whose <c>serverInitiateHandshake</c> doesn't switch the state, as in Forge versions that do it elsewhere, is left alone with a reason.</summary>
     [Fact]
     public void PatchLeavesClassesWhoseHandshakeDoesNotSwitch()

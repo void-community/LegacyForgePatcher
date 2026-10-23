@@ -11,20 +11,21 @@ namespace LegacyForgePatcher;
 /// </summary>
 internal static class ModLoaderConfigurationLoad
 {
-    private const string Helper = "legacyforgepatcher/ModLoaderConfigs";
     private const string LoadFrom = "loadFrom";
+    private const string LoadFromDescriptor = "(Ljava/nio/file/Path;)V";
 
-    /// <summary>Gets the patches: one for Forge's <c>FMLConfig</c>, one for NeoForge's.</summary>
+    /// <summary>
+    /// Gets the patches: one for Forge's <c>FMLConfig</c>, one for NeoForge's. The helper reads <c>configData</c> and calls <c>loadFrom</c>, both private, through the
+    /// methods each patch adds; the getter returns an Object, because NeoForge's FML 4 changed the field from a <c>CommentedFileConfig</c> to a <c>CommentedConfig</c>.
+    /// </summary>
     internal static IReadOnlyList<ClassPatch> Patches { get; } =
     [
         .. new[] { "net/minecraftforge/fml/loading/FMLConfig", "net/neoforged/fml/loading/FMLConfig" }.Select(
             static className => ClassPatch.For(className)
+                .AddFieldGetter(field: "configData", name: "legacyforgepatcher$configData", returns: "Ljava/lang/Object;")
+                .AddInvoker(LoadFrom, LoadFromDescriptor, name: "legacyforgepatcher$loadFrom")
                 .Method(name: "load", descriptor: "()V")
-                .RedirectInvocation(
-                    JavaMethod.Virtual(className, LoadFrom, descriptor: "(Ljava/nio/file/Path;)V"),
-                    // The helper takes the config as an Object because the bootstrap loader that defines it can't see FML's classes.
-                    JavaMethod.Static(Helper, LoadFrom, descriptor: "(Ljava/lang/Object;Ljava/nio/file/Path;)V")
-                )
+                .RedirectInvocation(JavaMethod.Virtual(className, LoadFrom, LoadFromDescriptor), toOwner: "legacyforgepatcher/ModLoaderConfigs")
         ),
     ];
 }

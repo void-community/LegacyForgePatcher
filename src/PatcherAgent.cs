@@ -9,7 +9,8 @@ namespace LegacyForgePatcher;
 /// the list of handshake messages that drops players at login on Forge for 1.13 to 1.20.1, and the second load of FML's config that crashes Forge and NeoForge
 /// clients at startup from 1.20.1, the set of object holder handlers that mods fill from several threads in Forge from 1.13.2, and the chunk batch answer that drops
 /// Minecraft clients from 1.20.5 when it arrives before play is set up, and the listener lists that EventBus builds under its lock and deadlocks Forge 1.14.2 and
-/// 1.14.3 clients with, and the file watcher that reloads FML's config while Forge 1.13.2 to 1.19.4 still corrects it on a first start.
+/// 1.14.3 clients with, and the file watcher that reloads FML's config while Forge 1.13.2 to 1.19.4 still corrects it on a first start, and the network tick that drops new
+/// connections on Forge for Minecraft 1.7.
 /// </summary>
 public sealed class PatcherAgent : JavaAgent
 {
@@ -87,35 +88,50 @@ public sealed class PatcherAgent : JavaAgent
 
     private const string ClientThread = "legacyforgepatcher/ClientThread";
 
+    /// <summary>Gets the helpers that the patches call, all compiled from <c>src/java</c>.</summary>
+    internal static IReadOnlyList<JavaClassDefinition> Helpers { get; } =
+    [
+        JavaClasses.Legacyforgepatcher.Collections,
+        JavaClasses.Legacyforgepatcher.ConnectionStates,
+        JavaClasses.Legacyforgepatcher.ClientThread,
+        JavaClasses.Legacyforgepatcher.ModLoaderConfigs,
+        JavaClasses.Legacyforgepatcher.ClientPackets,
+        JavaClasses.Legacyforgepatcher.EventListeners,
+        JavaClasses.Legacyforgepatcher.Connections,
+    ];
+
+    /// <summary>Gets every patch the agent registers.</summary>
+    internal static IReadOnlyList<ClassPatch> Patches { get; } =
+    [
+        TweakSort,
+        HandshakeState,
+        RegistryRevert,
+        RegistryInjection,
+        HandshakeSentMessages.Patch,
+        .. ModLoaderConfigurationLoad.Patches,
+        ObjectHolderHandlers.Patch,
+        ChunkBatchAnswer,
+        .. EventListenerLists.Patches,
+        ModLoaderConfigurationWatch.Patch,
+        PendingConnections.Patch,
+    ];
+
     /// <inheritdoc/>
     public override void Configure(AgentContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        // These two name no game type, so the bootstrap loader makes them visible to whichever loader defines FML.
-        context.DefineClass(JavaClasses.Legacyforgepatcher.Collections, ClassLoaderTarget.Bootstrap);
-        context.DefineClass(JavaClasses.Legacyforgepatcher.ModLoaderConfigs, ClassLoaderTarget.Bootstrap);
-        // These name the game's classes, so each goes into the loader of the class that calls it, where those classes resolve.
-        context.DefineClass(JavaClasses.Legacyforgepatcher.ConnectionStates, ClassLoaderTarget.PatchedClassLoader);
-        context.DefineClass(JavaClasses.Legacyforgepatcher.ClientThread, ClassLoaderTarget.PatchedClassLoader);
-        context.DefineClass(JavaClasses.Legacyforgepatcher.ClientPackets, ClassLoaderTarget.PatchedClassLoader);
-        context.DefineClass(JavaClasses.Legacyforgepatcher.EventListeners, ClassLoaderTarget.PatchedClassLoader);
-        context.DefineClass(JavaClasses.Legacyforgepatcher.Connections, ClassLoaderTarget.PatchedClassLoader);
-        context.Patch(TweakSort);
-        context.Patch(HandshakeState);
-        context.Patch(RegistryRevert);
-        context.Patch(RegistryInjection);
+        // Collections names no game type, so the bootstrap loader makes it visible to whichever loader defines FML. The others name the game's classes, so each goes
+        // into the loader of the class that calls it, where those classes resolve.
+        foreach (JavaClassDefinition helper in Helpers)
+            context.DefineClass(helper, IsBootstrapHelper(helper) ? ClassLoaderTarget.Bootstrap : ClassLoaderTarget.PatchedClassLoader);
 
-        foreach (ClassPatch patch in HandshakeSentMessages.Patches)
+        foreach (ClassPatch patch in Patches)
             context.Patch(patch);
+    }
 
-        foreach (ClassPatch patch in ModLoaderConfigurationLoad.Patches)
-            context.Patch(patch);
-
-        context.Patch(ObjectHolderHandlers.Patch);
-        context.Patch(ChunkBatchAnswer);
-        context.Patch(EventListenerLists.Patch);
-        context.Patch(ModLoaderConfigurationWatch.Patch);
-        context.Patch(PendingConnections.Patch);
+    private static bool IsBootstrapHelper(JavaClassDefinition helper)
+    {
+        return helper == JavaClasses.Legacyforgepatcher.Collections;
     }
 }

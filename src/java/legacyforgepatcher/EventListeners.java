@@ -31,23 +31,24 @@ public final class EventListeners {
     /**
      * Replaces computeListenerList(eventClass, fromInstanceCall) in EventBus 0.10.2 to 0.10.4's getListenerListInternal, which calls it holding the write lock and
      * then the read lock. It lets both go while it builds the list, takes them back in the same order, and returns the list in the map when another thread put
-     * one there meanwhile, which getListenerListInternal then puts back and returns. The patch opens the lock, the map and computeListenerList, which are private.
+     * one there meanwhile, which getListenerListInternal then puts back and returns. The lock, the map and computeListenerList are private, so the patch adds methods
+     * that reach them.
      */
     public static ListenerList computeListenerList(Class<?> eventClass, boolean fromInstanceCall) {
-        ReadWriteLock lock = EventListenerHelper.lock;
+        ReadWriteLock lock = EventListenerHelper.legacyforgepatcher$lock();
         ListenerList built;
 
         lock.readLock().unlock();
         lock.writeLock().unlock();
 
         try {
-            built = EventListenerHelper.computeListenerList(eventClass, fromInstanceCall);
+            built = EventListenerHelper.legacyforgepatcher$computeListenerList(eventClass, fromInstanceCall);
         } finally {
             lock.writeLock().lock();
             lock.readLock().lock();
         }
 
-        ListenerList existing = EventListenerHelper.listeners.get(eventClass);
+        ListenerList existing = EventListenerHelper.legacyforgepatcher$listeners().get(eventClass);
 
         return existing != null ? existing : built;
     }

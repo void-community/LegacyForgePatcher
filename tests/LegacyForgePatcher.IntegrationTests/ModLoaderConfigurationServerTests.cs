@@ -54,5 +54,10 @@ public sealed class ModLoaderConfigurationServerTests
             logs,
             $"LegacyForgePatcher: patched {package}/fml/loading/FMLConfig (load()V: 1 invocation of {package}/fml/loading/FMLConfig.loadFrom redirected)"
         );
+        // The agent logs the members a patch adds on a line of their own, when it defines the class.
+        ForgeServer.AssertLogged(
+            logs,
+            $"LegacyForgePatcher: patched {package}/fml/loading/FMLConfig (legacyforgepatcher$configData()Ljava/lang/Object;: getter of field configData added; legacyforgepatcher$loadFrom(Ljava/nio/file/Path;)V: invoker of loadFrom(Ljava/nio/file/Path;)V added)"
+        );
     }
 }

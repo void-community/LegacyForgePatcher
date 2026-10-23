@@ -50,9 +50,7 @@ public sealed class SentMessagesPatchTests
 
     private static ClassPatchResult Apply(byte[] classFile)
     {
-        string className = JavaClassFile.Read(classFile).Name;
-
-        return HandshakeSentMessages.Patches.Single(patch => patch.ClassName == className).Apply(classFile);
+        return HandshakeSentMessages.Patch.Apply(classFile);
     }
 
     // A constructor that stores a new ArrayList in the given field and then another one in packetBacklog, as Forge's handler from 1.18 does.

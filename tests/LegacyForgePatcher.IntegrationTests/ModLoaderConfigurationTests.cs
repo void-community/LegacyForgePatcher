@@ -61,6 +61,12 @@ public sealed class ModLoaderConfigurationTests
             patched.Output,
             StringComparison.Ordinal
         );
+        // The agent logs the members a patch adds on a line of their own, when it defines the class.
+        Assert.Contains(
+            expectedSubstring: "LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (legacyforgepatcher$configData()Ljava/lang/Object;: getter of field configData added; legacyforgepatcher$loadFrom(Ljava/nio/file/Path;)V: invoker of loadFrom(Ljava/nio/file/Path;)V added)",
+            patched.Output,
+            StringComparison.Ordinal
+        );
         // The window read the setting the first load stored, and the file was read once.
         Assert.Contains(expectedSubstring: "SQUIR false", patched.Output, StringComparison.Ordinal);
         Assert.Contains(expectedSubstring: "LOADS 1", patched.Output, StringComparison.Ordinal);

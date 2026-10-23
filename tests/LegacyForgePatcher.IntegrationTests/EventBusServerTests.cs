@@ -13,11 +13,11 @@ public sealed class EventBusServerTests
     // Renovate updates the image through the custom manager in .github/renovate.json.
     private const string Image = "itzg/minecraft-server:2026.10.0-java8";
 
-    /// <summary>Forge 1.14.2 with EventBus 0.10.1, whose fix calls the bootstrap helper, and 1.14.3 with EventBus 0.10.3, whose fix calls a class the agent writes into EventBus's loader.</summary>
-    public static TheoryData<string, string> Builds { get; } = new()
+    /// <summary>Forge 1.14.2 with EventBus 0.10.1, whose fix redirects its synchronized map's computeIfAbsent, and 1.14.3 with EventBus 0.10.3, whose fix redirects computeListenerList.</summary>
+    public static TheoryData<string, string, string> Builds { get; } = new()
     {
-        { "1.14.2", "26.0.63" },
-        { "1.14.3", "27.0.60" },
+        { "1.14.2", "26.0.63", "java/util/Map.computeIfAbsent" },
+        { "1.14.3", "27.0.60", "net/minecraftforge/eventbus/api/EventListenerHelper.computeListenerList" },
     };
 
     /// <summary>
@@ -26,9 +26,10 @@ public sealed class EventBusServerTests
     /// </summary>
     /// <param name="version">The Minecraft version.</param>
     /// <param name="forgeVersion">The Forge build.</param>
+    /// <param name="redirected">The call the agent redirects in that EventBus.</param>
     [Theory]
     [MemberData(nameof(Builds))]
-    public async Task ServerLoadsModsThroughThePatchedEventBus(string version, string forgeVersion)
+    public async Task ServerLoadsModsThroughThePatchedEventBus(string version, string forgeVersion, string redirected)
     {
         FileInfo agent = new(PublishedAgent.FindJar(name: "LegacyForgePatcher").FilePath);
 
@@ -45,7 +46,7 @@ public sealed class EventBusServerTests
         ForgeServer.AssertLogged(logs, ForgeServer.ReadyLine);
         ForgeServer.AssertLogged(
             logs,
-            expected: "LegacyForgePatcher: patched net/minecraftforge/eventbus/api/EventListenerHelper (getListenerListInternal(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: listener list built outside the lock (1 change))"
+            "LegacyForgePatcher: patched net/minecraftforge/eventbus/api/EventListenerHelper (getListenerListInternal(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: 1 invocation of " + redirected + " redirected"
         );
         // Forge 1.14 builds its fml.toml with autosave and autoreload too, which the server corrects on its first start.
         ForgeServer.AssertLogged(

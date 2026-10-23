@@ -14,18 +14,6 @@ public sealed class RegistryThreadPatchTests
     private const string ClientThread = "legacyforgepatcher/ClientThread";
     private const string Lambda = "lambda$accept$0";
 
-    /// <summary>The Java helper declares GameData's methods with GameData's descriptors, so the redirects keep them, in a class that Java 8 loads.</summary>
-    [Fact]
-    public void ClientThreadDeclaresGameDatasMethods()
-    {
-        JavaClassFile helper = JavaClassFile.Read(JavaClasses.Legacyforgepatcher.ClientThread.Bytes.Span);
-
-        Assert.Equal(ClientThread, helper.Name);
-        Assert.Equal(expected: 52, helper.MajorVersion);
-        Assert.NotNull(helper.FindMethod(PatcherAgent.RevertToFrozen.Name, PatcherAgent.RevertToFrozen.Descriptor));
-        Assert.NotNull(helper.FindMethod(PatcherAgent.InjectSnapshot.Name, PatcherAgent.InjectSnapshot.Descriptor));
-    }
-
     /// <summary>Forge for Minecraft 1.12.2 already runs the injection from a lambda on the client thread, so a WAITINGSERVERCOMPLETE that only calls it there is left alone.</summary>
     [Fact]
     public void InjectionPatchLeavesAnInjectionThatForgeAlreadyScheduled()

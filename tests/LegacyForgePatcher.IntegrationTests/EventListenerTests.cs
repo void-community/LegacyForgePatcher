@@ -10,16 +10,23 @@ namespace LegacyForgePatcher.IntegrationTests;
 /// </summary>
 public sealed class EventListenerTests
 {
+    private const string ComputeListenerList = "net/minecraftforge/eventbus/api/EventListenerHelper.computeListenerList";
+
     private const string MainClass = "net.minecraftforge.eventbus.api.Startup";
 
-    /// <summary>The fixtures: EventBus 0.9.3 to 0.10.1's synchronized map, and 0.10.2 to 0.10.4's read-write lock.</summary>
-    public static TheoryData<string> Shapes { get; } = ["Fixtures/EventBus0101/**/*.java", "Fixtures/EventBus0103/**/*.java"];
+    /// <summary>The fixtures, with the call the agent redirects in each: EventBus 0.9.3 to 0.10.1's synchronized map, and 0.10.2 to 0.10.4's read-write lock.</summary>
+    public static TheoryData<string, string> Shapes { get; } = new()
+    {
+        { "Fixtures/EventBus0101/**/*.java", "java/util/Map.computeIfAbsent" },
+        { "Fixtures/EventBus0103/**/*.java", ComputeListenerList },
+    };
 
     /// <summary>Without the agent the worker and the client thread wait for each other forever; with it both finish, and the event keeps one listener list. These clients run on Java 8.</summary>
     /// <param name="sources">The fixture's sources.</param>
+    /// <param name="redirected">The call the agent redirects in that shape.</param>
     [Theory]
     [MemberData(nameof(Shapes))]
-    public async Task AgentBuildsListenerListsOutsideTheLock(string sources)
+    public async Task AgentBuildsListenerListsOutsideTheLock(string sources, string redirected)
     {
         Jdk jdk = new(major: 8);
         PublishedAgent agent = PublishedAgent.Find(name: "LegacyForgePatcher");
@@ -33,7 +40,7 @@ public sealed class EventListenerTests
 
         JavaRun patched = await jdk.RunAsync(MainClass, classPath, agent, Verified(), cancellationToken);
 
-        AssertPatched(patched);
+        AssertPatched(patched, redirected);
     }
 
     /// <summary>The jar for <c>-javaagent</c> fixes the fixture whose fix needs a class in EventBus's own loader as the library for <c>-agentpath</c> does.</summary>
@@ -47,14 +54,14 @@ public sealed class EventListenerTests
         string classPath = await jdk.CompileAsync(sources: "Fixtures/EventBus0103/**/*.java", cancellationToken: cancellationToken);
         JavaRun patched = await jdk.RunAsync(MainClass, classPath, jar, Verified(), cancellationToken);
 
-        AssertPatched(patched);
+        AssertPatched(patched, ComputeListenerList);
     }
 
-    private static void AssertPatched(JavaRun patched)
+    private static void AssertPatched(JavaRun patched, string redirected)
     {
         Assert.True(patched.ExitCode is 0, patched.Output);
         Assert.Contains(
-            expectedSubstring: "LegacyForgePatcher: patched net/minecraftforge/eventbus/api/EventListenerHelper (getListenerListInternal(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: listener list built outside the lock (1 change))",
+            "LegacyForgePatcher: patched net/minecraftforge/eventbus/api/EventListenerHelper (getListenerListInternal(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: 1 invocation of " + redirected + " redirected",
             patched.Output,
             StringComparison.Ordinal
         );

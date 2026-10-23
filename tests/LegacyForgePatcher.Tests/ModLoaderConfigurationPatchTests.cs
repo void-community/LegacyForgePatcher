@@ -10,46 +10,49 @@ namespace LegacyForgePatcher.Tests;
 public sealed class ModLoaderConfigurationPatchTests
 {
     private const string Helper = "legacyforgepatcher/ModLoaderConfigs";
-    private const string HelperDescriptor = "(Ljava/lang/Object;Ljava/nio/file/Path;)V";
     private const string LoadFrom = "loadFrom";
     private const string LoadFromDescriptor = "(Ljava/nio/file/Path;)V";
 
-    /// <summary>The names of FML's configuration class in Forge and in NeoForge.</summary>
-    public static TheoryData<string> ConfigurationClassNames { get; } = ["net/minecraftforge/fml/loading/FMLConfig", "net/neoforged/fml/loading/FMLConfig"];
-
-    /// <summary>The compiled helper declares the static method the patches call, in a class that Java 8 loads.</summary>
-    [Fact]
-    public void HelperDeclaresTheMethodThePatchesCall()
+    /// <summary>The names of FML's configuration class in Forge and in NeoForge, with the type of its configData: NeoForge's FML 4 changed it.</summary>
+    public static TheoryData<string, string> Configurations { get; } = new()
     {
-        JavaClassFile helper = JavaClassFile.Read(JavaClasses.Legacyforgepatcher.ModLoaderConfigs.Bytes.Span);
-
-        Assert.Equal(Helper, helper.Name);
-        Assert.Equal(expected: 52, helper.MajorVersion);
-        Assert.NotNull(helper.FindMethod(LoadFrom, HelperDescriptor));
-    }
+        { "net/minecraftforge/fml/loading/FMLConfig", "Lcom/electronwill/nightconfig/core/file/CommentedFileConfig;" },
+        { "net/neoforged/fml/loading/FMLConfig", "Lcom/electronwill/nightconfig/core/file/CommentedFileConfig;" },
+        { "net/neoforged/fml/loading/FMLConfig", "Lcom/electronwill/nightconfig/core/CommentedConfig;" },
+    };
 
     /// <summary>A FMLConfig whose <c>load</c> doesn't call <c>loadFrom</c> isn't the code this fix was written for, so it is left alone with a reason.</summary>
     [Fact]
     public void PatchLeavesConfigsWhoseLoadDoesNotCallLoadFrom()
     {
-        ClassPatchResult result = Apply(CreateClassFile(className: "net/neoforged/fml/loading/FMLConfig", caller: "reload"));
+        ClassPatchResult result = Apply(
+            CreateClassFile(className: "net/neoforged/fml/loading/FMLConfig", configurationDataDescriptor: "Ljava/lang/Object;", caller: "reload")
+        );
 
         Assert.False(result.Changed);
         Assert.Contains(expectedSubstring: "load()V", result.SkippedReason, StringComparison.Ordinal);
     }
 
-    /// <summary><c>load</c>'s call of <c>loadFrom</c> goes to the helper, with the config as its first argument.</summary>
+    /// <summary>
+    /// <c>load</c>'s call of <c>loadFrom</c> goes to the helper, with the config typed as FMLConfig, and the patch adds a getter of configData as an Object, whatever
+    /// its type, and an invoker of the private loadFrom, which the helper calls.
+    /// </summary>
     /// <param name="className">FMLConfig's name.</param>
+    /// <param name="configurationDataDescriptor">The type of its configData.</param>
     [Theory]
-    [MemberData(nameof(ConfigurationClassNames))]
-    public void PatchRedirectsTheLoadInLoad(string className)
+    [MemberData(nameof(Configurations))]
+    public void PatchRedirectsTheLoadInLoad(string className, string configurationDataDescriptor)
     {
-        ClassPatchResult result = Apply(CreateClassFile(className, caller: "load"));
+        ClassPatchResult result = Apply(CreateClassFile(className, configurationDataDescriptor, caller: "load"));
         byte[] patched = result.Bytes ?? throw new InvalidOperationException(result.ToString());
+        JavaClassFile model = JavaClassFile.Read(patched);
 
         Assert.Equal(expected: 1, result.RedirectedInvocations);
-        ClassFileAssert.Calls(patched, method: "load", Helper, LoadFrom, HelperDescriptor);
+        Assert.Equal(expected: 2, result.AddedMembers);
+        ClassFileAssert.Calls(patched, method: "load", Helper, LoadFrom, "(L" + className + ";Ljava/nio/file/Path;)V");
         ClassFileAssert.DoesNotCall(patched, method: "load", className, LoadFrom, LoadFromDescriptor);
+        Assert.NotNull(model.FindMethod(name: "legacyforgepatcher$configData", descriptor: "()Ljava/lang/Object;"));
+        Assert.NotNull(model.FindMethod(name: "legacyforgepatcher$loadFrom", LoadFromDescriptor));
     }
 
     private static ClassPatchResult Apply(byte[] classFile)
@@ -59,11 +62,15 @@ public sealed class ModLoaderConfigurationPatchTests
         return ModLoaderConfigurationLoad.Patches.Single(patch => patch.ClassName == className).Apply(classFile);
     }
 
-    // A class file whose load is empty unless it is the caller, and whose caller calls loadFrom on a null config with a null path.
-    private static byte[] CreateClassFile(string className, string caller)
+    // A class file with FML's private configData and loadFrom, whose load is empty unless it is the caller, and whose caller calls loadFrom on a null config with
+    // a null path.
+    private static byte[] CreateClassFile(string className, string configurationDataDescriptor, string caller)
     {
         JavaMethod loadFrom = JavaMethod.Virtual(className, LoadFrom, LoadFromDescriptor);
-        ClassFileWriter writer = new(className);
+
+        ClassFileWriter writer = new ClassFileWriter(className)
+            .AddField(name: "configData", configurationDataDescriptor)
+            .AddMethod(LoadFrom, LoadFromDescriptor, static code => code.Return(), accessFlags: 0x0002);
 
         if (caller != "load")
             writer = writer.AddMethod(name: "load", descriptor: "()V", static code => code.Return());

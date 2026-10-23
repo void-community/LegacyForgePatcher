@@ -18,6 +18,7 @@ internal static class ForgeServer
     /// </summary>
     internal const string Collection = "Forge servers";
 
+
     /// <summary>The line a server logs when it is ready for players.</summary>
     internal const string ReadyLine = "Done (";
 

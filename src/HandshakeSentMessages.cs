@@ -9,14 +9,12 @@ namespace LegacyForgePatcher;
 /// </summary>
 internal static class HandshakeSentMessages
 {
-    /// <summary>Gets the patches, one for each name the handler has had: in <c>fml.network</c> up to 1.16, in <c>fmllegacy.network</c> in 1.17 and in <c>network</c> from 1.18.</summary>
-    internal static IReadOnlyList<ClassPatch> Patches { get; } =
-    [
-        .. new[] { "net/minecraftforge/fml/network/FMLHandshakeHandler", "net/minecraftforge/fmllegacy/network/FMLHandshakeHandler", "net/minecraftforge/network/HandshakeHandler" }.Select(
-            // Every other ArrayList the constructor creates stays one.
-            static className => ClassPatch.For(className)
-                .Method(name: "<init>")
-                .ReplaceConstruction(fromClass: "java/util/ArrayList", toClass: "java/util/concurrent/CopyOnWriteArrayList", storedIn: "sentMessages")
-        ),
-    ];
+    /// <summary>Gets the patch, which matches each name the handler has had: in <c>fml.network</c> up to 1.16, in <c>fmllegacy.network</c> in 1.17 and in <c>network</c> from 1.18.</summary>
+    internal static ClassPatch Patch { get; } = ClassPatch.ForMatching(
+            static className => className is "net/minecraftforge/fml/network/FMLHandshakeHandler" or "net/minecraftforge/fmllegacy/network/FMLHandshakeHandler" or "net/minecraftforge/network/HandshakeHandler",
+            description: "Forge's handshake handler"
+        )
+        .Method(name: "<init>")
+        // Every other ArrayList the constructor creates stays one.
+        .ReplaceConstruction(fromClass: "java/util/ArrayList", toClass: "java/util/concurrent/CopyOnWriteArrayList", storedIn: "sentMessages");
 }

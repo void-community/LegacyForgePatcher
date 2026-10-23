@@ -13,17 +13,6 @@ public sealed class TweakSortPatchTests
     private const string SortDescriptor = "(Ljava/util/List;Ljava/util/Comparator;)V";
     private const string SortTweakList = "sortTweakList";
 
-    /// <summary>The compiled helper declares the static method the patch calls, in a class that Java 8 loads.</summary>
-    [Fact]
-    public void HelperDeclaresTheMethodThePatchCalls()
-    {
-        JavaClassFile helper = JavaClassFile.Read(JavaClasses.Legacyforgepatcher.Collections.Bytes.Span);
-
-        Assert.Equal(JavaClasses.Legacyforgepatcher.Collections.Name, helper.Name);
-        Assert.Equal(expected: 52, helper.MajorVersion);
-        Assert.NotNull(helper.FindMethod(name: "sort", SortDescriptor));
-    }
-
     /// <summary>A CoreModManager whose <c>sortTweakList</c> doesn't sort with <c>Collections.sort</c> needs no patch.</summary>
     [Fact]
     public void PatchLeavesClassesThatDontCallCollectionsSort()

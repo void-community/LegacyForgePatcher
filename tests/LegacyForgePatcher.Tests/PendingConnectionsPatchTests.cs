@@ -17,18 +17,6 @@ public sealed class PendingConnectionsPatchTests
     private const string NetworkTick = "func_151269_c";
     private const string ProcessReceivedPackets = "func_74428_b";
 
-    /// <summary>The compiled helper declares both static methods the patch calls, in a class that Java 8 loads.</summary>
-    [Fact]
-    public void HelperDeclaresTheMethodsThePatchCalls()
-    {
-        JavaClassFile helper = JavaClassFile.Read(JavaClasses.Legacyforgepatcher.Connections.Bytes.Span);
-
-        Assert.Equal(Helper, helper.Name);
-        Assert.Equal(expected: 52, helper.MajorVersion);
-        Assert.NotNull(helper.FindMethod(name: "isOpenOrPending", descriptor: "(Lnet/minecraft/network/NetworkManager;)Z"));
-        Assert.NotNull(helper.FindMethod(name: "processIfActive", descriptor: "(Lnet/minecraft/network/NetworkManager;)V"));
-    }
-
     /// <summary>A NetworkSystem without the tick, as in Minecraft with other names, is left alone with a reason.</summary>
     [Fact]
     public void PatchLeavesSystemsWithoutTheTick()
