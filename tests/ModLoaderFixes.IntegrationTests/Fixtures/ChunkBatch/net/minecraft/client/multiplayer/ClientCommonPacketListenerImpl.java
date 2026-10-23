@@ -14,4 +14,8 @@ public class ClientCommonPacketListenerImpl {
     public void send(Packet packet) {
         connection.send(packet);
     }
+
+    public Connection getConnection() {
+        return connection;
+    }
 }

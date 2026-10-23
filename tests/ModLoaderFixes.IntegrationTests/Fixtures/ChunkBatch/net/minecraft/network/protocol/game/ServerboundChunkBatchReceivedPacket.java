@@ -11,6 +11,11 @@ public final class ServerboundChunkBatchReceivedPacket implements Packet {
     }
 
     @Override
+    public String id() {
+        return "serverbound/minecraft:chunk_batch_received";
+    }
+
+    @Override
     public String toString() {
         return "ServerboundChunkBatchReceivedPacket[desiredChunksPerTick=" + desiredChunksPerTick + "]";
     }
