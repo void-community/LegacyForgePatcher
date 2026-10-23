@@ -10,6 +10,8 @@ namespace LegacyForgePatcher.IntegrationTests;
 [Collection(ForgeServer.Collection)]
 public sealed class ModernForgeServerTests
 {
+    private const string ConfigurationWatchPatched = "LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: autosave and autoreload left off (2 changes))";
+
     /// <summary>
     /// One build of each Forge branch whose handshake handler keeps <c>sentMessages</c> in an ArrayList, the ones seen dropping players among them, with the itzg image
     /// that runs it, the protocol version of its Minecraft and FML's network version. Forge from 1.17 runs on the Java 21 image, because itzg's Java 16 and 17 images
@@ -43,6 +45,8 @@ public sealed class ModernForgeServerTests
     [MemberData(nameof(Builds))]
     public async Task ServerKeepsPlayersThatLogInThroughFmlsHandshake(string image, string type, string version, string loaderVersion, int protocol, string fmlVersion)
     {
+        ArgumentNullException.ThrowIfNull(version);
+
         FileInfo agent = new(PublishedAgent.FindJar(name: "LegacyForgePatcher").FilePath);
 
         using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
@@ -71,6 +75,13 @@ public sealed class ModernForgeServerTests
             logs,
             expected: "LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: objectHolders created as a ConcurrentHashMap key set (1 change))"
         );
+
+        // Forge before 1.20 builds its fml.toml with autosave and autoreload, which each server here corrects on its first start; Forge 1.20.1 and NeoForge don't.
+        if (type == "FORGE" && !version.StartsWith(value: "1.20", StringComparison.Ordinal))
+            ForgeServer.AssertLogged(logs, ConfigurationWatchPatched);
+        else
+            ForgeServer.AssertNotLogged(logs, ConfigurationWatchPatched);
+
         // The client reports a login that skipped FML's handshake separately, so this also says every player went through it.
         Assert.True(logins.ExitCode is 0, logins.Stdout + logins.Stderr);
         Assert.Contains(expectedSubstring: "LOGINS {logged in=200}", logins.Stdout, StringComparison.Ordinal);

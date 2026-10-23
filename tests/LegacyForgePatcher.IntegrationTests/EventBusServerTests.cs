@@ -47,5 +47,10 @@ public sealed class EventBusServerTests
             logs,
             expected: "LegacyForgePatcher: patched net/minecraftforge/eventbus/api/EventListenerHelper (getListenerListInternal(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: listener list built outside the lock (1 change))"
         );
+        // Forge 1.14 builds its fml.toml with autosave and autoreload too, which the server corrects on its first start.
+        ForgeServer.AssertLogged(
+            logs,
+            expected: "LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: autosave and autoreload left off (2 changes))"
+        );
     }
 }
