@@ -26,7 +26,7 @@ internal static class ForgeServer
     private const string LoaderDirectory = "/loader/";
 
     /// <summary>Gets how long installing and starting a server may take.</summary>
-    internal static TimeSpan StartTimeout { get; } = TimeSpan.FromMinutes(minutes: 10);
+    internal static TimeSpan StartTimeout { get; } = TimeSpan.FromMinutes(minutes: 15);
 
     /// <summary>Checks that the server's log has a line, and shows the end of the log when it hasn't: the start, which is all a failed Contains prints, is itzg's setup.</summary>
     /// <param name="logs">The server's log.</param>
@@ -87,14 +87,21 @@ internal static class ForgeServer
     /// <param name="fmlVersion">FML's network version, to log in as a Forge client, or <see langword="null"/> to log in as a vanilla one.</param>
     /// <param name="cancellationToken">Stops the logins.</param>
     /// <returns>The login client's result; it prints <c>LOGINS {logged in=200}</c> and exits with 0 when every login reached the play state.</returns>
-    internal static Task<ExecResult> LogInPlayersAsync(IContainer server, int protocol, string? fmlVersion, CancellationToken cancellationToken)
+    internal static async Task<ExecResult> LogInPlayersAsync(IContainer server, int protocol, string? fmlVersion, CancellationToken cancellationToken)
     {
         List<string> command = ["java", "-cp", LoaderDirectory, "loginload.LoginLoad", "127.0.0.1", "25565", protocol.ToString(CultureInfo.InvariantCulture), "200", "40"];
 
         if (fmlVersion is not null)
             command.Add(fmlVersion);
 
-        return server.ExecAsync(command, cancellationToken);
+        try
+        {
+            return await server.ExecAsync(command, cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
+        }
+        catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested)
+        {
+            throw await TimedOutAsync(server, phase: "The logins didn't finish", exception).ConfigureAwait(continueOnCapturedContext: false);
+        }
     }
 
     /// <summary>Reads the server's log, both streams.</summary>
@@ -116,6 +123,36 @@ internal static class ForgeServer
     /// <param name="cancellationToken">Stops the wait.</param>
     /// <returns>The server's log so far, across its starts.</returns>
     internal static async Task<string> StartAsync(IContainer server, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await StartUntilReadyAsync(server, cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
+        }
+        catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested)
+        {
+            throw await TimedOutAsync(server, phase: "The server wasn't ready", exception).ConfigureAwait(continueOnCapturedContext: false);
+        }
+    }
+
+    /// <summary>Lets players in without accounts, as many as a burst of logins brings, and puts the login client beside the server.</summary>
+    /// <param name="server">The server's builder.</param>
+    /// <param name="loginLoad">The compiled login client, from <see cref="CompileLoginLoadAsync"/>.</param>
+    /// <returns>The builder.</returns>
+    internal static ContainerBuilder WithLoginLoad(this ContainerBuilder server, string loginLoad)
+    {
+        return server
+            .WithEnvironment(name: "ONLINE_MODE", value: "FALSE")
+            .WithEnvironment(name: "MAX_PLAYERS", value: "1000")
+            .WithResourceMapping(new DirectoryInfo(loginLoad), LoaderDirectory);
+    }
+
+    // itzg logs "[init] [ERROR] Failed to install Forge" (or NeoForge) once per failed install.
+    private static int CountInstallFailures(string logs)
+    {
+        return logs.Split(separator: '\n').Count(static line => line.Contains(value: "[ERROR] Failed to install", StringComparison.Ordinal));
+    }
+
+    private static async Task<string> StartUntilReadyAsync(IContainer server, CancellationToken cancellationToken)
     {
         string logs = string.Empty;
 
@@ -140,28 +177,18 @@ internal static class ForgeServer
         return logs;
     }
 
-    /// <summary>Lets players in without accounts, as many as a burst of logins brings, and puts the login client beside the server.</summary>
-    /// <param name="server">The server's builder.</param>
-    /// <param name="loginLoad">The compiled login client, from <see cref="CompileLoginLoadAsync"/>.</param>
-    /// <returns>The builder.</returns>
-    internal static ContainerBuilder WithLoginLoad(this ContainerBuilder server, string loginLoad)
-    {
-        return server
-            .WithEnvironment(name: "ONLINE_MODE", value: "FALSE")
-            .WithEnvironment(name: "MAX_PLAYERS", value: "1000")
-            .WithResourceMapping(new DirectoryInfo(loginLoad), LoaderDirectory);
-    }
-
-    // itzg logs "[init] [ERROR] Failed to install Forge" (or NeoForge) once per failed install.
-    private static int CountInstallFailures(string logs)
-    {
-        return logs.Split(separator: '\n').Count(static line => line.Contains(value: "[ERROR] Failed to install", StringComparison.Ordinal));
-    }
-
     private static string Tail(string logs)
     {
         string[] lines = logs.Split(separator: '\n');
 
         return string.Join(separator: '\n', lines.Skip(Math.Max(val1: 0, lines.Length - 40)));
+    }
+
+    // A timed-out wait would otherwise report only that a task was canceled; the end of the log says whether the install, the start or the logins took the time.
+    private static async Task<TimeoutException> TimedOutAsync(IContainer server, string phase, OperationCanceledException exception)
+    {
+        string logs = await ReadLogsAsync(server, CancellationToken.None).ConfigureAwait(continueOnCapturedContext: false);
+
+        return new TimeoutException($"{phase} within {StartTimeout.TotalMinutes} minutes. The server's log ends with:{Environment.NewLine}{Tail(logs)}", exception);
     }
 }
