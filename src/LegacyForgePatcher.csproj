@@ -12,6 +12,8 @@
   <ItemGroup>
     <PackageReference Include="JvmBridge" />
     <JavaSource Include="java/**/*.java" />
+    <!-- Stand-ins for the game's classes that the helpers compile against; the JVM links the helpers to the real ones, so these are never shipped. -->
+    <JavaStubSource Include="stubs/**/*.java" />
     <InternalsVisibleTo Include="LegacyForgePatcher.Tests" />
   </ItemGroup>
 </Project>

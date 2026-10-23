@@ -1,7 +1,7 @@
 package net.minecraft.network;
 
 import io.netty.channel.Channel;
-import io.netty.util.concurrent.EventExecutor;
+import io.netty.channel.EventLoop;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +24,7 @@ public class NetworkManager {
             return loopThread;
         }
     });
-    private final EventExecutor eventLoop = new EventExecutor() {
+    private final EventLoop eventLoop = new EventLoop() {
         @Override
         public boolean inEventLoop() {
             return Thread.currentThread() == loopThread;
@@ -37,7 +37,7 @@ public class NetworkManager {
     };
     private final Channel channel = new Channel() {
         @Override
-        public EventExecutor eventLoop() {
+        public EventLoop eventLoop() {
             return eventLoop;
         }
     };

@@ -115,12 +115,12 @@ LegacyForgePatcher: patched cpw/mods/fml/relauncher/CoreModManager (sortTweakLis
 LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/NetworkDispatcher (serverInitiateHandshake()I: 1 invocation of net/minecraft/network/NetworkManager.func_150723_a redirected)
 LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/FMLHandshakeClientState$4 (accept: 1 invocation of net/minecraftforge/registries/GameData.injectSnapshot redirected)
 LegacyForgePatcher: patched net/minecraftforge/fml/common/network/handshake/FMLHandshakeClientState$7 (accept: 1 invocation of net/minecraftforge/registries/GameData.revertToFrozen redirected)
-LegacyForgePatcher: patched net/minecraftforge/network/HandshakeHandler (<init>: sentMessages created as a CopyOnWriteArrayList (1 change))
+LegacyForgePatcher: patched net/minecraftforge/network/HandshakeHandler (<init>: 1 new java/util/ArrayList replaced by new java/util/concurrent/CopyOnWriteArrayList stored in sentMessages)
 LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (load()V: 1 invocation of net/minecraftforge/fml/loading/FMLConfig.loadFrom redirected)
-LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: objectHolders created as a ConcurrentHashMap key set (1 change))
+LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: 1 new java/util/HashSet() replaced by java/util/concurrent/ConcurrentHashMap.newKeySet() stored in objectHolders)
 LegacyForgePatcher: patched net/minecraft/client/multiplayer/ClientPacketListener (handleChunkBatchFinished(Lnet/minecraft/network/protocol/game/ClientboundChunkBatchFinishedPacket;)V: 1 invocation of net/minecraft/client/multiplayer/ClientPacketListener.send redirected)
 LegacyForgePatcher: patched net/minecraftforge/eventbus/api/EventListenerHelper (getListenerListInternal(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: listener list built outside the lock (1 change))
-LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: autosave and autoreload left off (2 changes))
+LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autosave removed; loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autoreload removed)
 LegacyForgePatcher: patched net/minecraft/network/NetworkSystem (func_151269_c()V: 1 invocation of net/minecraft/network/NetworkManager.func_150724_d redirected; func_151269_c()V: 1 invocation of net/minecraft/network/NetworkManager.func_74428_b redirected)
 ```
 

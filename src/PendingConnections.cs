@@ -21,13 +21,6 @@ internal static class PendingConnections
     /// </summary>
     internal static ClassPatch Patch { get; } = ClassPatch.For(className: "net/minecraft/network/NetworkSystem")
         .Method(name: "func_151269_c", descriptor: "()V")
-        .RedirectInvocation(
-            JavaMethod.Virtual(Manager, name: "func_150724_d", descriptor: "()Z"),
-            // The helper takes Object parameters because the bootstrap loader that defines it can't see Minecraft's classes.
-            JavaMethod.Static(Helper, name: "isOpenOrPending", descriptor: "(Ljava/lang/Object;)Z")
-        )
-        .RedirectInvocation(
-            JavaMethod.Virtual(Manager, name: "func_74428_b", descriptor: "()V"),
-            JavaMethod.Static(Helper, name: "processIfActive", descriptor: "(Ljava/lang/Object;)V")
-        );
+        .RedirectInvocation(JavaMethod.Virtual(Manager, name: "func_150724_d", descriptor: "()Z"), Helper, toName: "isOpenOrPending")
+        .RedirectInvocation(JavaMethod.Virtual(Manager, name: "func_74428_b", descriptor: "()V"), Helper, toName: "processIfActive");
 }

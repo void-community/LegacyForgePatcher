@@ -57,7 +57,7 @@ public sealed class ConfigurationWatchTests
     {
         Assert.True(patched.ExitCode is 0, patched.Output);
         Assert.Contains(
-            expectedSubstring: "LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: autosave and autoreload left off (2 changes))",
+            expectedSubstring: "LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autosave removed; loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autoreload removed)",
             patched.Output,
             StringComparison.Ordinal
         );

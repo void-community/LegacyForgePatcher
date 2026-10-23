@@ -10,7 +10,7 @@ namespace LegacyForgePatcher.IntegrationTests;
 [Collection(ForgeServer.Collection)]
 public sealed class ModernForgeServerTests
 {
-    private const string ConfigurationWatchPatched = "LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: autosave and autoreload left off (2 changes))";
+    private const string ConfigurationWatchPatched = "LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autosave removed; loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autoreload removed)";
 
     /// <summary>
     /// One build of each Forge branch whose handshake handler keeps <c>sentMessages</c> in an ArrayList, the ones seen dropping players among them, with the itzg image
@@ -68,12 +68,15 @@ public sealed class ModernForgeServerTests
 
         logs = await ForgeServer.ReadLogsAsync(server, timeout.Token);
 
-        ForgeServer.AssertLogged(logs, expected: "HandshakeHandler (<init>: sentMessages created as a CopyOnWriteArrayList (1 change))");
+        ForgeServer.AssertLogged(
+            logs,
+            expected: "HandshakeHandler (<init>: 1 new java/util/ArrayList replaced by new java/util/concurrent/CopyOnWriteArrayList stored in sentMessages)"
+        );
         ForgeServer.AssertNotLogged(logs, unexpected: "ConcurrentModificationException");
         // Mod loading fills ObjectHolderRegistry's handlers on these servers too, from the same worker threads as on clients.
         ForgeServer.AssertLogged(
             logs,
-            expected: "LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: objectHolders created as a ConcurrentHashMap key set (1 change))"
+            expected: "LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: 1 new java/util/HashSet() replaced by java/util/concurrent/ConcurrentHashMap.newKeySet() stored in objectHolders)"
         );
 
         // Forge before 1.20 builds its fml.toml with autosave and autoreload, which each server here corrects on its first start; Forge 1.20.1 and NeoForge don't.

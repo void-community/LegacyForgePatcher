@@ -9,13 +9,10 @@ namespace LegacyForgePatcher.Tests;
 /// <summary>Pointing FML's load of its config at the helper that skips a second load.</summary>
 public sealed class ModLoaderConfigurationPatchTests
 {
-    private const byte AconstNull = 0x01;
     private const string Helper = "legacyforgepatcher/ModLoaderConfigs";
     private const string HelperDescriptor = "(Ljava/lang/Object;Ljava/nio/file/Path;)V";
-    private const byte InvokeVirtual = 0xb6;
     private const string LoadFrom = "loadFrom";
     private const string LoadFromDescriptor = "(Ljava/nio/file/Path;)V";
-    private const byte Return = 0xb1;
 
     /// <summary>The names of FML's configuration class in Forge and in NeoForge.</summary>
     public static TheoryData<string> ConfigurationClassNames { get; } = ["net/minecraftforge/fml/loading/FMLConfig", "net/neoforged/fml/loading/FMLConfig"];
@@ -65,15 +62,12 @@ public sealed class ModLoaderConfigurationPatchTests
     // A class file whose load is empty unless it is the caller, and whose caller calls loadFrom on a null config with a null path.
     private static byte[] CreateClassFile(string className, string caller)
     {
+        JavaMethod loadFrom = JavaMethod.Virtual(className, LoadFrom, LoadFromDescriptor);
         ClassFileWriter writer = new(className);
-        int loadFrom = writer.AddMethodReference(className, LoadFrom, LoadFromDescriptor);
-        byte[] call = [AconstNull, AconstNull, InvokeVirtual, checked((byte)(loadFrom >> 8)), checked((byte)(loadFrom & 0xff)), Return];
 
         if (caller != "load")
-            writer = writer.AddMethod(name: "load", descriptor: "()V", maxStack: 0, maxLocals: 0, [Return]);
+            writer = writer.AddMethod(name: "load", descriptor: "()V", static code => code.Return());
 
-        writer = writer.AddMethod(caller, descriptor: "()V", maxStack: 2, maxLocals: 0, call);
-
-        return writer.ToArray();
+        return writer.AddMethod(caller, descriptor: "()V", code => code.AConstNull().AConstNull().Invoke(loadFrom).Return()).ToArray();
     }
 }

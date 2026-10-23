@@ -9,7 +9,8 @@ import java.nio.file.Path;
  * Loads FML's config once. FML loads fml.toml twice while the game starts, and its early loading window starts reading the config between the two loads.
  * FMLConfig.loadFrom stores a new, empty config before it reads the file into it, so the window can read a setting in between and find nothing. The second load
  * reads the same file a moment after the first, so this skips it. It lives in the bootstrap loader and reaches FMLConfig, whose packages FML's automatic
- * module opens to every module, through reflection.
+ * module opens to every module, through reflection: NeoForge's FML 4 changed configData from a CommentedFileConfig to a CommentedConfig, and a helper compiled
+ * against either type would fail to link on the other.
  */
 public final class ModLoaderConfigs {
     private ModLoaderConfigs() {

@@ -9,16 +9,12 @@ namespace LegacyForgePatcher.Tests;
 /// <summary>Redirecting FML's switch to the play state in NetworkDispatcher class files.</summary>
 public sealed class HandshakeStatePatchTests
 {
-    private const byte AconstNull = 0x01;
     private const string ClassName = "net/minecraftforge/fml/common/network/handshake/NetworkDispatcher";
-    private const string HelperDescriptor = "(Ljava/lang/Object;Ljava/lang/Object;)V";
+    private const string HelperDescriptor = "(Lnet/minecraft/network/NetworkManager;Lnet/minecraft/network/EnumConnectionState;)V";
     private const string HelperName = "setConnectionState";
-    private const byte IconstZero = 0x03;
-    private const byte InvokeVirtual = 0xb6;
-    private const byte Ireturn = 0xac;
     private const string ServerInitiateHandshake = "serverInitiateHandshake";
 
-    /// <summary>The compiled helper declares the static method the patch calls, in a class that Java 8 loads.</summary>
+    /// <summary>The compiled helper declares the static method the patch calls, with Minecraft's types, in a class that Java 8 loads.</summary>
     [Fact]
     public void HelperDeclaresTheMethodThePatchCalls()
     {
@@ -88,14 +84,20 @@ public sealed class HandshakeStatePatchTests
     private static byte[] CreateClassFile(params (string Name, int Switches)[] methods)
     {
         ClassFileWriter writer = new(ClassName);
-        int setConnectionState = writer.AddMethodReference(PatcherAgent.SetConnectionState.Owner, PatcherAgent.SetConnectionState.Name, PatcherAgent.SetConnectionState.Descriptor);
-        byte[] call = [AconstNull, AconstNull, InvokeVirtual, checked((byte)(setConnectionState >> 8)), checked((byte)(setConnectionState & 0xff))];
 
         foreach ((string name, int switches) in methods)
         {
-            byte[] code = [.. Enumerable.Repeat(call, switches).SelectMany(static instruction => instruction), IconstZero, Ireturn];
+            writer = writer.AddMethod(
+                name,
+                descriptor: "()I",
+                code =>
+                {
+                    for (int index = 0; index < switches; index++)
+                        code = code.AConstNull().AConstNull().Invoke(PatcherAgent.SetConnectionState);
 
-            writer = writer.AddMethod(name, descriptor: "()I", maxStack: 2, maxLocals: 1, code);
+                    return code.IConst(value: 0).IReturn();
+                }
+            );
         }
 
         return writer.ToArray();

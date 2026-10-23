@@ -50,7 +50,7 @@ public sealed class EventBusServerTests
         // Forge 1.14 builds its fml.toml with autosave and autoreload too, which the server corrects on its first start.
         ForgeServer.AssertLogged(
             logs,
-            expected: "LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: autosave and autoreload left off (2 changes))"
+            expected: "LegacyForgePatcher: patched net/minecraftforge/fml/loading/FMLConfig (loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autosave removed; loadFrom(Ljava/nio/file/Path;)V: 1 invocation of com/electronwill/nightconfig/core/file/GenericBuilder.autoreload removed)"
         );
     }
 }

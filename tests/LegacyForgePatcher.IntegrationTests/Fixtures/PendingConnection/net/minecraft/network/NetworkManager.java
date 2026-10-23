@@ -29,6 +29,11 @@ public class NetworkManager {
         received.add(packet);
     }
 
+    /** Forge's getter of the channel. */
+    public Channel channel() {
+        return field_150746_k;
+    }
+
     /** isChannelOpen. */
     public boolean func_150724_d() {
         return field_150746_k != null && field_150746_k.isOpen();

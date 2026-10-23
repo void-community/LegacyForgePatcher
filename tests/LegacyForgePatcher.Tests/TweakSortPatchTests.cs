@@ -9,10 +9,7 @@ namespace LegacyForgePatcher.Tests;
 /// <summary>Redirecting FML's <c>Collections.sort</c> call in CoreModManager class files.</summary>
 public sealed class TweakSortPatchTests
 {
-    private const byte AconstNull = 0x01;
     private const string ClassName = "cpw/mods/fml/relauncher/CoreModManager";
-    private const byte InvokeStatic = 0xb8;
-    private const byte Return = 0xb1;
     private const string SortDescriptor = "(Ljava/util/List;Ljava/util/Comparator;)V";
     private const string SortTweakList = "sortTweakList";
 
@@ -82,15 +79,11 @@ public sealed class TweakSortPatchTests
     // A class file with straight-line methods, each of which calls Collections.sort or just returns.
     private static byte[] CreateClassFile(params (string Name, bool CallsSort)[] methods)
     {
+        JavaMethod sort = JavaMethod.Static(owner: "java/util/Collections", name: "sort", SortDescriptor);
         ClassFileWriter writer = new(ClassName);
-        int sort = writer.AddMethodReference(owner: "java/util/Collections", name: "sort", SortDescriptor);
 
         foreach ((string name, bool callsSort) in methods)
-        {
-            byte[] code = callsSort ? [AconstNull, AconstNull, InvokeStatic, checked((byte)(sort >> 8)), checked((byte)(sort & 0xff)), Return] : [Return];
-
-            writer = writer.AddMethod(name, descriptor: "()V", maxStack: 2, maxLocals: 0, code);
-        }
+            writer = writer.AddMethod(name, descriptor: "()V", code => (callsSort ? code.AConstNull().AConstNull().Invoke(sort) : code).Return());
 
         return writer.ToArray();
     }

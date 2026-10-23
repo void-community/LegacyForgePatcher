@@ -38,11 +38,7 @@ public sealed class PatcherAgent : JavaAgent
     /// </summary>
     internal static readonly ClassPatch HandshakeState = ClassPatch.For(className: "net/minecraftforge/fml/common/network/handshake/NetworkDispatcher")
         .Method(name: "serverInitiateHandshake", descriptor: "()I")
-        .RedirectInvocation(
-            SetConnectionState,
-            // The helper takes Object parameters because the bootstrap loader that defines it can't see Minecraft's classes.
-            JavaMethod.Static(owner: "legacyforgepatcher/ConnectionStates", name: "setConnectionState", descriptor: "(Ljava/lang/Object;Ljava/lang/Object;)V")
-        );
+        .RedirectInvocation(SetConnectionState, toOwner: "legacyforgepatcher/ConnectionStates", toName: "setConnectionState");
 
     /// <summary>Forge's revert of the registries to their frozen state, which its client handshake calls when a proxy resets the handshake.</summary>
     internal static readonly JavaMethod RevertToFrozen = JavaMethod.Static(owner: "net/minecraftforge/registries/GameData", name: "revertToFrozen", descriptor: "()V");
@@ -55,22 +51,22 @@ public sealed class PatcherAgent : JavaAgent
     );
 
     /// <summary>
-    /// Points the <c>GameData.revertToFrozen()</c> call of FML's <c>DONE</c> handshake state at <c>legacyforgepatcher.RegistrySnapshots</c>, which schedules it on the client
+    /// Points the <c>GameData.revertToFrozen()</c> call of FML's <c>DONE</c> handshake state at <c>legacyforgepatcher.ClientThread</c>, which schedules it on the client
     /// thread. Forge for Minecraft 1.12 and 1.12.1 reverts the registries on the network thread when a proxy resets the handshake to move the player to another server,
     /// while the client thread ticks the world and the player, which read them, and the game can crash. Forge for 1.12.2 schedules it itself, so its class is skipped.
     /// </summary>
     internal static readonly ClassPatch RegistryRevert = ClassPatch.For(className: "net/minecraftforge/fml/common/network/handshake/FMLHandshakeClientState$7")
         .Method(name: "accept")
-        .RedirectInvocation(RevertToFrozen, RegistrySnapshots.Name);
+        .RedirectInvocation(RevertToFrozen, ClientThread);
 
     /// <summary>
-    /// Points the <c>GameData.injectSnapshot</c> call of FML's <c>WAITINGSERVERCOMPLETE</c> handshake state at <c>legacyforgepatcher.RegistrySnapshots</c>, which runs it on
+    /// Points the <c>GameData.injectSnapshot</c> call of FML's <c>WAITINGSERVERCOMPLETE</c> handshake state at <c>legacyforgepatcher.ClientThread</c>, which runs it on
     /// the client thread and returns its result, for the same reason as <see cref="RegistryRevert"/>. The client thread runs scheduled tasks in order, so a revert still
     /// comes before the injection that follows it.
     /// </summary>
     internal static readonly ClassPatch RegistryInjection = ClassPatch.For(className: "net/minecraftforge/fml/common/network/handshake/FMLHandshakeClientState$4")
         .Method(name: "accept")
-        .RedirectInvocation(InjectSnapshot, RegistrySnapshots.Name);
+        .RedirectInvocation(InjectSnapshot, ClientThread);
 
     /// <summary>
     /// Points the <c>send</c> call in Minecraft's <c>ClientPacketListener.handleChunkBatchFinished</c> at <c>legacyforgepatcher.ClientPackets</c>, which sends from the client
@@ -86,27 +82,25 @@ public sealed class PatcherAgent : JavaAgent
                 name: "send",
                 descriptor: "(Lnet/minecraft/network/protocol/Packet;)V"
             ),
-            // The helper takes Object parameters because the bootstrap loader that defines it can't see Minecraft's classes.
-            JavaMethod.Static(owner: "legacyforgepatcher/ClientPackets", name: "send", descriptor: "(Ljava/lang/Object;Ljava/lang/Object;)V")
+            toOwner: "legacyforgepatcher/ClientPackets"
         );
+
+    private const string ClientThread = "legacyforgepatcher/ClientThread";
 
     /// <inheritdoc/>
     public override void Configure(AgentContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        // The bootstrap loader makes the helpers visible to whichever loader defines FML.
+        // These two name no game type, so the bootstrap loader makes them visible to whichever loader defines FML.
         context.DefineClass(JavaClasses.Legacyforgepatcher.Collections, ClassLoaderTarget.Bootstrap);
-        context.DefineClass(JavaClasses.Legacyforgepatcher.ConnectionStates, ClassLoaderTarget.Bootstrap);
-        context.DefineClass(JavaClasses.Legacyforgepatcher.ClientThread, ClassLoaderTarget.Bootstrap);
         context.DefineClass(JavaClasses.Legacyforgepatcher.ModLoaderConfigs, ClassLoaderTarget.Bootstrap);
-        context.DefineClass(JavaClasses.Legacyforgepatcher.ClientPackets, ClassLoaderTarget.Bootstrap);
-        context.DefineClass(JavaClasses.Legacyforgepatcher.EventListeners, ClassLoaderTarget.Bootstrap);
-        context.DefineClass(JavaClasses.Legacyforgepatcher.Connections, ClassLoaderTarget.Bootstrap);
-        // EventBus calls this one by the descriptor of its own ListenerList, which only its loader can resolve.
-        context.DefineClass(EventListenerLists.Definition, ClassLoaderTarget.PatchedClassLoader);
-        // Forge's handshake calls this one by the descriptor of a Guava type, which only Forge's loader can resolve.
-        context.DefineClass(RegistrySnapshots.Definition, ClassLoaderTarget.PatchedClassLoader);
+        // These name the game's classes, so each goes into the loader of the class that calls it, where those classes resolve.
+        context.DefineClass(JavaClasses.Legacyforgepatcher.ConnectionStates, ClassLoaderTarget.PatchedClassLoader);
+        context.DefineClass(JavaClasses.Legacyforgepatcher.ClientThread, ClassLoaderTarget.PatchedClassLoader);
+        context.DefineClass(JavaClasses.Legacyforgepatcher.ClientPackets, ClassLoaderTarget.PatchedClassLoader);
+        context.DefineClass(JavaClasses.Legacyforgepatcher.EventListeners, ClassLoaderTarget.PatchedClassLoader);
+        context.DefineClass(JavaClasses.Legacyforgepatcher.Connections, ClassLoaderTarget.PatchedClassLoader);
         context.Patch(TweakSort);
         context.Patch(HandshakeState);
         context.Patch(RegistryRevert);

@@ -1,5 +1,6 @@
 using JvmBridge.Agents;
 using JvmBridge.ClassFiles;
+using JvmBridge.ClassFiles.Code;
 using JvmBridge.Testing;
 
 using Xunit;
@@ -9,16 +10,12 @@ namespace LegacyForgePatcher.Tests;
 /// <summary>Redirecting Minecraft 1.7's network tick to the helper that leaves a connection without a channel for a later tick.</summary>
 public sealed class PendingConnectionsPatchTests
 {
-    private const byte AconstNull = 0x01;
     private const string ClassName = "net/minecraft/network/NetworkSystem";
     private const string Helper = "legacyforgepatcher/Connections";
-    private const byte IfEq = 0x99;
-    private const byte InvokeVirtual = 0xb6;
     private const string IsChannelOpen = "func_150724_d";
     private const string Manager = "net/minecraft/network/NetworkManager";
     private const string NetworkTick = "func_151269_c";
     private const string ProcessReceivedPackets = "func_74428_b";
-    private const byte Return = 0xb1;
 
     /// <summary>The compiled helper declares both static methods the patch calls, in a class that Java 8 loads.</summary>
     [Fact]
@@ -28,8 +25,8 @@ public sealed class PendingConnectionsPatchTests
 
         Assert.Equal(Helper, helper.Name);
         Assert.Equal(expected: 52, helper.MajorVersion);
-        Assert.NotNull(helper.FindMethod(name: "isOpenOrPending", descriptor: "(Ljava/lang/Object;)Z"));
-        Assert.NotNull(helper.FindMethod(name: "processIfActive", descriptor: "(Ljava/lang/Object;)V"));
+        Assert.NotNull(helper.FindMethod(name: "isOpenOrPending", descriptor: "(Lnet/minecraft/network/NetworkManager;)Z"));
+        Assert.NotNull(helper.FindMethod(name: "processIfActive", descriptor: "(Lnet/minecraft/network/NetworkManager;)V"));
     }
 
     /// <summary>A NetworkSystem without the tick, as in Minecraft with other names, is left alone with a reason.</summary>
@@ -50,8 +47,8 @@ public sealed class PendingConnectionsPatchTests
         byte[] patched = result.Bytes ?? throw new InvalidOperationException(result.ToString());
 
         Assert.Equal(expected: 2, result.RedirectedInvocations);
-        ClassFileAssert.Calls(patched, NetworkTick, Helper, name: "isOpenOrPending", descriptor: "(Ljava/lang/Object;)Z");
-        ClassFileAssert.Calls(patched, NetworkTick, Helper, name: "processIfActive", descriptor: "(Ljava/lang/Object;)V");
+        ClassFileAssert.Calls(patched, NetworkTick, Helper, name: "isOpenOrPending", descriptor: "(Lnet/minecraft/network/NetworkManager;)Z");
+        ClassFileAssert.Calls(patched, NetworkTick, Helper, name: "processIfActive", descriptor: "(Lnet/minecraft/network/NetworkManager;)V");
         ClassFileAssert.DoesNotCall(patched, NetworkTick, Manager, IsChannelOpen, descriptor: "()Z");
         ClassFileAssert.DoesNotCall(patched, NetworkTick, Manager, ProcessReceivedPackets, descriptor: "()V");
     }
@@ -59,27 +56,21 @@ public sealed class PendingConnectionsPatchTests
     // A NetworkSystem whose method checks a null manager's channel and processes its packets when it is open, as the tick does for each manager.
     private static byte[] CreateClassFile(string method)
     {
-        ClassFileWriter writer = new(ClassName);
-        int isChannelOpen = writer.AddMethodReference(Manager, IsChannelOpen, descriptor: "()Z");
-        int processReceivedPackets = writer.AddMethodReference(Manager, ProcessReceivedPackets, descriptor: "()V");
+        JavaMethod isChannelOpen = JavaMethod.Virtual(Manager, IsChannelOpen, descriptor: "()Z");
+        JavaMethod processReceivedPackets = JavaMethod.Virtual(Manager, ProcessReceivedPackets, descriptor: "()V");
 
-        // 0: aconst_null; 1: invokevirtual isChannelOpen; 4: ifeq +7 (to 11); 7: aconst_null; 8: invokevirtual processReceivedPackets; 11: return
-        byte[] code =
-        [
-            AconstNull,
-            InvokeVirtual,
-            checked((byte)(isChannelOpen >> 8)),
-            checked((byte)(isChannelOpen & 0xff)),
-            IfEq,
-            0x00,
-            0x07,
-            AconstNull,
-            InvokeVirtual,
-            checked((byte)(processReceivedPackets >> 8)),
-            checked((byte)(processReceivedPackets & 0xff)),
-            Return,
-        ];
+        // The branch needs a class of version 50, which the JVM verifies without stack map frames.
+        return new ClassFileWriter(ClassName, majorVersion: 50)
+            .AddMethod(
+                method,
+                descriptor: "()V",
+                code =>
+                {
+                    CodeLabel done = code.NewLabel();
 
-        return writer.AddMethod(method, descriptor: "()V", maxStack: 1, maxLocals: 1, code).ToArray();
+                    return code.AConstNull().Invoke(isChannelOpen).If(Opcodes.IfEq, done).AConstNull().Invoke(processReceivedPackets).Mark(done).Return();
+                }
+            )
+            .ToArray();
     }
 }

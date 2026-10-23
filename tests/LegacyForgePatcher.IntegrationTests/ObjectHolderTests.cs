@@ -55,7 +55,7 @@ public sealed class ObjectHolderTests
     {
         Assert.True(patched.ExitCode is 0, patched.Output);
         Assert.Contains(
-            expectedSubstring: "LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: objectHolders created as a ConcurrentHashMap key set (1 change))",
+            expectedSubstring: "LegacyForgePatcher: patched net/minecraftforge/registries/ObjectHolderRegistry (<clinit>()V: 1 new java/util/HashSet() replaced by java/util/concurrent/ConcurrentHashMap.newKeySet() stored in objectHolders)",
             patched.Output,
             StringComparison.Ordinal
         );

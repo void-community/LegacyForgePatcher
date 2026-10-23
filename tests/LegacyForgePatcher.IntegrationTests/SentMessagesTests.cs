@@ -54,7 +54,7 @@ public sealed class SentMessagesTests
     {
         Assert.True(patched.ExitCode is 0, patched.Output);
         Assert.Contains(
-            expectedSubstring: "LegacyForgePatcher: patched net/minecraftforge/network/HandshakeHandler (<init>: sentMessages created as a CopyOnWriteArrayList (1 change))",
+            expectedSubstring: "LegacyForgePatcher: patched net/minecraftforge/network/HandshakeHandler (<init>: 1 new java/util/ArrayList replaced by new java/util/concurrent/CopyOnWriteArrayList stored in sentMessages)",
             patched.Output,
             StringComparison.Ordinal
         );
