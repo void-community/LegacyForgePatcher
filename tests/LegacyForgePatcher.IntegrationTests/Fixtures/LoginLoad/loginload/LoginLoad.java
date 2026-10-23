@@ -117,8 +117,9 @@ public final class LoginLoad {
             while (packet[0] != LOGIN_SUCCESS) {
                 DataInputStream fields = new DataInputStream(new java.io.ByteArrayInputStream(packet, 1, packet.length - 1));
 
+                // The server says why, as a JSON text component.
                 if (packet[0] == LOGIN_DISCONNECT)
-                    return "disconnected at login";
+                    return "disconnected at login: " + readString(fields);
 
                 if (packet[0] == SET_COMPRESSION)
                     threshold = readVarInt(fields);
