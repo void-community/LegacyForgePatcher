@@ -8,4 +8,5 @@ TestResults/
 .idea/
 hs_err_pid*
 core
+!core/
 core.*
