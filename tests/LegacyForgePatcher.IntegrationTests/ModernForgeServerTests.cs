@@ -14,8 +14,8 @@ public sealed class ModernForgeServerTests
 
     /// <summary>
     /// One build of each Forge branch whose handshake handler keeps <c>sentMessages</c> in an ArrayList, the ones seen dropping players among them, with the itzg image
-    /// that runs it, the protocol version of its Minecraft and FML's network version. Forge from 1.17 runs on the Java 21 image, because itzg's Java 16 and 17 images
-    /// have glibc 2.31 and the agent needs 2.34. Renovate updates the images through the custom manager in .github/renovate.json.
+    /// that runs it, the protocol version of its Minecraft and FML's network version. Forge from 1.17 runs on the Java 17 image, whose Ubuntu 20.04 has glibc 2.31, so
+    /// these also load the agent on an older glibc than the runner that published it. Renovate updates the images through the custom manager in .github/renovate.json.
     /// </summary>
     public static TheoryData<string, string, string, string, int, string> Builds { get; } = new()
     {
@@ -23,11 +23,11 @@ public sealed class ModernForgeServerTests
         { "itzg/minecraft-server:2026.10.0-java8", "FORGE", "1.14.4", "28.2.26", 498, "FML2" },
         { "itzg/minecraft-server:2026.10.0-java8", "FORGE", "1.15", "29.0.4", 573, "FML2" },
         { "itzg/minecraft-server:2026.10.0-java8", "FORGE", "1.16.5", "36.2.39", 754, "FML2" },
-        { "itzg/minecraft-server:2026.10.0-java21", "FORGE", "1.17.1", "37.1.1", 756, "FML2" },
-        { "itzg/minecraft-server:2026.10.0-java21", "FORGE", "1.18.2", "40.2.0", 758, "FML3" },
-        { "itzg/minecraft-server:2026.10.0-java21", "FORGE", "1.19.2", "43.5.0", 760, "FML3" },
-        { "itzg/minecraft-server:2026.10.0-java21", "FORGE", "1.20.1", "47.4.28", 763, "FML3" },
-        { "itzg/minecraft-server:2026.10.0-java21", "NEOFORGE", "1.20.1", "47.1.106", 763, "FML3" },
+        { "itzg/minecraft-server:2026.10.0-java17", "FORGE", "1.17.1", "37.1.1", 756, "FML2" },
+        { "itzg/minecraft-server:2026.10.0-java17", "FORGE", "1.18.2", "40.2.0", 758, "FML3" },
+        { "itzg/minecraft-server:2026.10.0-java17", "FORGE", "1.19.2", "43.5.0", 760, "FML3" },
+        { "itzg/minecraft-server:2026.10.0-java17", "FORGE", "1.20.1", "47.4.28", 763, "FML3" },
+        { "itzg/minecraft-server:2026.10.0-java17", "NEOFORGE", "1.20.1", "47.1.106", 763, "FML3" },
     };
 
     /// <summary>

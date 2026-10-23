@@ -52,8 +52,28 @@ jobs:
           dotnet-version: 10.0.402
       - name: Prepare Linux native toolchain
         run: sudo apt-get update -qq && sudo apt-get install -y clang zlib1g-dev
+      # Links the agent against the Ubuntu 18.04 sysroot of .NET's cross-build image, so that it loads on glibc 2.17 and later instead of needing the runner's
+      # glibc (2.34 and later on ubuntu-24.04). Renovate updates the pinned commit when void-community/Actions changes.
+      - name: Prepare the glibc 2.17 sysroot
+        id: sysroot
+        uses: void-community/actions/glibc-sysroot@779ebfbf56a61e10114658c560da49324f0f2380 # main
+        with:
+          rid: ${{ matrix.rid }}
       - name: Publish the native agent and its jar
-        run: dotnet publish src -c Release -r "$TARGET_RID" -o "artifacts/agent/$TARGET_RID"
+        env:
+          SYSROOT_PROPERTIES: ${{ steps.sysroot.outputs.properties }}
+        run: |
+          # SYSROOT_PROPERTIES is meant to split into separate arguments.
+          # shellcheck disable=SC2086
+          dotnet publish src -c Release -r "$TARGET_RID" $SYSROOT_PROPERTIES -o "artifacts/agent/$TARGET_RID"
+      - name: Check the agent's glibc floor
+        run: |
+          floor="$(readelf -V "artifacts/agent/$TARGET_RID/LegacyForgePatcher.so" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)"
+          echo "LegacyForgePatcher.so asks for $floor at most"
+          if [ "$(printf '%s\n' GLIBC_2.17 "$floor" | sort -V | tail -1)" != GLIBC_2.17 ]; then
+            echo "::error::LegacyForgePatcher.so asks for $floor, newer than glibc 2.17."
+            exit 1
+          fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: agent-${{ matrix.rid }}

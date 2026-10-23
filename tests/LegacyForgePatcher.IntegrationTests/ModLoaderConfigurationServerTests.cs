@@ -16,10 +16,10 @@ public sealed class ModLoaderConfigurationServerTests
     /// </summary>
     public static TheoryData<string, string, string, string> Builds { get; } = new()
     {
-        { "itzg/minecraft-server:2026.10.0-java21", "FORGE", "1.19.4", "45.3.0" },
-        { "itzg/minecraft-server:2026.10.0-java21", "FORGE", "1.20.2", "48.1.0" },
+        { "itzg/minecraft-server:2026.10.0-java17", "FORGE", "1.19.4", "45.3.0" },
+        { "itzg/minecraft-server:2026.10.0-java17", "FORGE", "1.20.2", "48.1.0" },
         { "itzg/minecraft-server:2026.10.0-java21", "FORGE", "1.21.4", "54.1.0" },
-        { "itzg/minecraft-server:2026.10.0-java21", "NEOFORGE", "1.20.4", "20.4.253" },
+        { "itzg/minecraft-server:2026.10.0-java17", "NEOFORGE", "1.20.4", "20.4.253" },
         { "itzg/minecraft-server:2026.10.0-java21", "NEOFORGE", "1.21.4", "21.4.161" },
     };
 
