@@ -36,6 +36,8 @@ public final class LoginLoad {
     private static final int C2S_ACKNOWLEDGE = 99;
     private static final int PLAY_PACKETS_TO_READ = 3;
     private static final int TIMEOUT_MILLISECONDS = 30000;
+    private static final int PROBE_MILLISECONDS = 60000;
+    private static final String STILL_STARTING = "Server is still starting!";
     private static final String LOGGED_IN = "logged in";
 
     private LoginLoad() {
@@ -49,6 +51,9 @@ public final class LoginLoad {
         int parallel = Integer.parseInt(arguments[4]);
         final String fmlVersion = arguments.length > 5 ? arguments[5] : null;
         final Map<String, Integer> outcomes = new TreeMap<String, Integer>();
+
+        System.out.println("PROBE " + waitForLogins(host, port, protocol, fmlVersion));
+
         ExecutorService pool = Executors.newFixedThreadPool(parallel);
 
         for (int index = 0; index < logins; index++) {
@@ -74,6 +79,25 @@ public final class LoginLoad {
 
         System.out.println("LOGINS " + outcomes);
         System.exit(outcomes.keySet().equals(java.util.Collections.singleton(LOGGED_IN)) ? 0 : 1);
+    }
+
+    // Forge and FML log "Done" before ServerStartedEvent's handlers run, and turn players away with "Server is still starting!" until those finish, which on a
+    // busy machine outlasts this client's start. One player logs in first, again until the server lets it, so that the burst only meets a server that admits
+    // players. Returns how that login ended, after how many tries.
+    private static String waitForLogins(String host, int port, int protocol, String fmlVersion) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + PROBE_MILLISECONDS;
+        int tries = 0;
+        String outcome;
+
+        do {
+            if (tries > 0)
+                Thread.sleep(500);
+
+            outcome = login(host, port, protocol, "probe", fmlVersion);
+            tries++;
+        } while (outcome.contains(STILL_STARTING) && System.currentTimeMillis() < deadline);
+
+        return outcome + " after " + tries + (tries == 1 ? " try" : " tries");
     }
 
     private static String login(String host, int port, int protocol, String name, String fmlVersion) {

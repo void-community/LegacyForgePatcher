@@ -81,6 +81,7 @@ internal static class ForgeServer
 
     /// <summary>
     /// Logs 200 players in, 40 at a time, from inside the server's container, so the logins load its event loops without depending on the host's port forwarding.
+    /// Forge logs its ready line before it admits players, so one player logs in first, until the server lets it, and the 200 follow.
     /// </summary>
     /// <param name="server">The started server.</param>
     /// <param name="protocol">The protocol version of the server's Minecraft.</param>
