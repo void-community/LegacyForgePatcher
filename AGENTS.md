@@ -27,6 +27,8 @@ Don't add `global.json`, NuGet lock files, or other .NET JSON configuration. CI 
 
 Install the .NET 10 SDK, Clang and zlib development headers. The build compiles the Java helper with the JDK in `JvmBridgeJdkHome` or `JAVA_HOME`, and downloads a pinned JDK when neither names one. Run `dotnet build LegacyForgePatcher.slnx -c Release` and `dotnet test LegacyForgePatcher.slnx -c Release --no-build`, which skips the native tests. Publish the agent with `dotnet publish src -c Release -r <RID> -o artifacts/agent/<RID>`, which writes the library and, through `JvmBridgeAgentJar`, `LegacyForgePatcher.jar` for `java -javaagent` beside it. Then run `dotnet test tests/LegacyForgePatcher.IntegrationTests -c Release` with `TARGET_RID=<RID>`. JvmBridge.Testing downloads a checksum-pinned Java 8 JDK, or uses the one `JVMBRIDGE_JDK_8` names. The Forge server test needs Docker. Record which platforms and Java versions actually executed.
 
+The Linux agents must load on glibc 2.17, because Forge from 1.17 to 1.20.4 runs on itzg's Ubuntu 20.04 image. CI publishes them against .NET's Ubuntu 18.04 sysroot through `void-community/actions/glibc-sysroot` and fails when one asks for a newer glibc. A plain local publish links against the machine's own glibc; to reproduce CI's library, publish with `-p:SysRoot=/crossrootfs/<arch> -p:LinkerFlavor=lld` as JvmBridge's Publishing for Linux guide describes, and check it with `readelf -V`.
+
 CI must account for every configured platform. Never weaken tests or skip source, build or workflow changes to get green checks.
 
 ## Commits and releases
