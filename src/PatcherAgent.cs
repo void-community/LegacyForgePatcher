@@ -102,6 +102,7 @@ public sealed class PatcherAgent : JavaAgent
         context.DefineClass(JavaClasses.Legacyforgepatcher.ModLoaderConfigs, ClassLoaderTarget.Bootstrap);
         context.DefineClass(JavaClasses.Legacyforgepatcher.ClientPackets, ClassLoaderTarget.Bootstrap);
         context.DefineClass(JavaClasses.Legacyforgepatcher.EventListeners, ClassLoaderTarget.Bootstrap);
+        context.DefineClass(JavaClasses.Legacyforgepatcher.Connections, ClassLoaderTarget.Bootstrap);
         // EventBus calls this one by the descriptor of its own ListenerList, which only its loader can resolve.
         context.DefineClass(EventListenerLists.Definition, ClassLoaderTarget.PatchedClassLoader);
         // Forge's handshake calls this one by the descriptor of a Guava type, which only Forge's loader can resolve.
@@ -121,5 +122,6 @@ public sealed class PatcherAgent : JavaAgent
         context.Patch(ChunkBatchAnswer);
         context.Patch(EventListenerLists.Patch);
         context.Patch(ModLoaderConfigurationWatch.Patch);
+        context.Patch(PendingConnections.Patch);
     }
 }

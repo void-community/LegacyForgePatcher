@@ -23,6 +23,13 @@ public sealed class ForgeServerTests
         { "1.12.2", "14.23.5.2859", 340 },
     };
 
+    /// <summary>The Forge 1.7 builds whose network tick drops connections it sees before they have a channel, with the protocol version of their Minecraft.</summary>
+    public static TheoryData<string, string, int> Forge17Builds { get; } = new()
+    {
+        { "1.7.2", "10.12.2.1161", 4 },
+        { "1.7.10", "10.13.4.1614", 5 },
+    };
+
     /// <summary>With the jar loaded, a Forge 1.12 server lets every player of a burst of logins reach the play state; without it, such a burst drops many of them.</summary>
     /// <param name="version">The Minecraft version.</param>
     /// <param name="forgeVersion">The Forge build.</param>
@@ -71,6 +78,48 @@ public sealed class ForgeServerTests
     public async Task Forge172ServerStartsWithJavaAgentJar()
     {
         await AssertForge172StartsAsync(option: "-javaagent:", new FileInfo(PublishedAgent.FindJar(name: "LegacyForgePatcher").FilePath));
+    }
+
+    /// <summary>
+    /// With the jar loaded, a Forge 1.7 server ticks its connections through the agent's helper and lets every player of a burst of logins reach the play state. The
+    /// tick that drops a connection only now and then lands before its channel is active, so <see cref="PendingConnectionTests"/> runs it at that moment.
+    /// </summary>
+    /// <param name="version">The Minecraft version.</param>
+    /// <param name="forgeVersion">The Forge build.</param>
+    /// <param name="protocol">The protocol version of that Minecraft.</param>
+    [Theory]
+    [MemberData(nameof(Forge17Builds))]
+    public async Task Forge17ServerKeepsPlayersThatLogInUnderLoad(string version, string forgeVersion, int protocol)
+    {
+        FileInfo agent = new(PublishedAgent.FindJar(name: "LegacyForgePatcher").FilePath);
+
+        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+
+        timeout.CancelAfter(ForgeServer.StartTimeout);
+
+        string loginLoad = await ForgeServer.CompileLoginLoadAsync(timeout.Token);
+
+        await using IContainer server = ForgeServer.Create(Image, type: "FORGE", version, memory: "2G", option: "-javaagent:", agent)
+            .WithEnvironment(name: "FORGE_VERSION", forgeVersion)
+            .WithLoginLoad(loginLoad)
+            .Build();
+
+        string logs = await ForgeServer.StartAsync(server, timeout.Token);
+
+        ForgeServer.AssertLogged(logs, ForgeServer.ReadyLine);
+
+        ExecResult logins = await ForgeServer.LogInPlayersAsync(server, protocol, fmlVersion: null, timeout.Token);
+
+        logs = await ForgeServer.ReadLogsAsync(server, timeout.Token);
+
+        ForgeServer.AssertLogged(
+            logs,
+            "LegacyForgePatcher: patched net/minecraft/network/NetworkSystem (func_151269_c()V: 1 invocation of net/minecraft/network/NetworkManager.func_150724_d redirected; "
+            + "func_151269_c()V: 1 invocation of net/minecraft/network/NetworkManager.func_74428_b redirected)"
+        );
+        ForgeServer.AssertNotLogged(logs, unexpected: "Failed to handle packet");
+        Assert.True(logins.ExitCode is 0, logins.Stdout + logins.Stderr);
+        Assert.Contains(expectedSubstring: "LOGINS {logged in=200}", logins.Stdout, StringComparison.Ordinal);
     }
 
     private static async Task AssertForge172StartsAsync(string option, FileInfo agent)
