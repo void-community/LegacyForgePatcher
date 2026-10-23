@@ -6,7 +6,7 @@ using Xunit;
 
 namespace LegacyForgePatcher.Tests;
 
-/// <summary>Every patch of the agent against the real jars of the Forge, NeoForge, FML and EventBus versions at the edges of what each fix covers.</summary>
+/// <summary>Every patch of the agent against the real jars of the Forge, NeoForge, FML, EventBus and ModLauncher versions at the edges of what each fix covers.</summary>
 public sealed class RealJarTests
 {
     private const string EventListenerHelper = "net/minecraftforge/eventbus/api/EventListenerHelper";
@@ -16,6 +16,7 @@ public sealed class RealJarTests
     private const string NeoForgeConfiguration = "net/neoforged/fml/loading/FMLConfig";
     private const string NeoForged = "https://maven.neoforged.net/releases";
     private const string ObjectHolderRegistry = "net/minecraftforge/registries/ObjectHolderRegistry";
+    private const string TransformerClassWriter = "cpw/mods/modlauncher/TransformerClassWriter";
 
     /// <summary>
     /// Each pinned jar with what the patches change in it: one entry per class a patch changes, with the number of members that patch adds, so that a class two patches
@@ -56,6 +57,11 @@ public sealed class RealJarTests
         { Forge, "net.minecraftforge:eventbus:0.10.1", "00315a766018bc6f0c4a2e1eb465c866ac194d7a29d820283ba3db57ba763915", [EventListenerHelper + " +0"] },
         { Forge, "net.minecraftforge:eventbus:0.10.3", "eee16845dafb8d3032b246b82b9a542860dc09c067182c02fcb31038a741d028", [EventListenerHelper + " +3"] },
         { Forge, "net.minecraftforge:eventbus:0.10.5", "061c8c32b827425c4d38d18629c4a45e3d4230b2228fb93d15d9ec28e141a262", [] },
+        // ModLauncher's class hierarchy cache: shared plain HashMaps in 2 to 5, which Forge for 1.13.2 to 1.15.2 ships, and ConcurrentHashMaps from 8.
+        { Forge, "cpw.mods:modlauncher:2.1.5", "d00219b4f85ee3355e630751fef05df9c1dd64b1f33b07834c22c9d6adbef616", [TransformerClassWriter + " +0"] },
+        { Forge, "cpw.mods:modlauncher:4.1.0", "a8f8a7f3f45b2077bf5408ec5a35c7fac6fd51a9f81c15354dfff7a1a732a865", [TransformerClassWriter + " +0"] },
+        { Forge, "cpw.mods:modlauncher:5.1.2", "d2099e2187317b85118d898c525f3a494bad4daf6187156b4583042ed0160160", [TransformerClassWriter + " +0"] },
+        { Forge, "cpw.mods:modlauncher:8.1.3", "4e0d846f75ffd0dd5042c9b1aa86b8fcc758acd27a004c259d26aebc100ffdf2", [] },
     };
 
     /// <summary>The patches change exactly the classes each fix was written for in that version, and leave every other class of the jar as it is.</summary>

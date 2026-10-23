@@ -18,6 +18,9 @@ internal static class ForgeServer
     /// </summary>
     internal const string Collection = "Forge servers";
 
+    /// <summary>The line the agent logs when it makes the class hierarchy cache of ModLauncher 2 to 5, which Forge for Minecraft 1.13.2 to 1.15.2 ships, safe to share.</summary>
+    internal const string ModLauncherPatched =
+        "LegacyForgePatcher: patched cpw/mods/modlauncher/TransformerClassWriter (<clinit>()V: 1 new java/util/HashMap() replaced by legacyforgepatcher/ClassHierarchyCache.parents() stored in classParents";
 
     /// <summary>The line a server logs when it is ready for players.</summary>
     internal const string ReadyLine = "Done (";

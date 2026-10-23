@@ -48,6 +48,8 @@ public sealed class EventBusServerTests
             logs,
             "LegacyForgePatcher: patched net/minecraftforge/eventbus/api/EventListenerHelper (getListenerListInternal(Ljava/lang/Class;Z)Lnet/minecraftforge/eventbus/ListenerList;: 1 invocation of " + redirected + " redirected"
         );
+        // Forge 1.14 ships ModLauncher 2 and 3, whose class hierarchy cache the agent makes safe to share between threads.
+        ForgeServer.AssertLogged(logs, ForgeServer.ModLauncherPatched);
         // Forge 1.14 builds its fml.toml with autosave and autoreload too, which the server corrects on its first start.
         ForgeServer.AssertLogged(
             logs,

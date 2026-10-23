@@ -85,6 +85,12 @@ public sealed class ModernForgeServerTests
         else
             ForgeServer.AssertNotLogged(logs, ConfigurationWatchPatched);
 
+        // Forge before 1.16 ships ModLauncher 2 to 5, whose class hierarchy cache the transforming threads share; from 1.16 ModLauncher keeps it safe itself.
+        if (type == "FORGE" && string.CompareOrdinal(version, strB: "1.16") < 0)
+            ForgeServer.AssertLogged(logs, ForgeServer.ModLauncherPatched);
+        else
+            ForgeServer.AssertNotLogged(logs, ForgeServer.ModLauncherPatched);
+
         // The client reports a login that skipped FML's handshake separately, so this also says every player went through it.
         Assert.True(logins.ExitCode is 0, logins.Stdout + logins.Stderr);
         Assert.Contains(expectedSubstring: "LOGINS {logged in=200}", logins.Stdout, StringComparison.Ordinal);

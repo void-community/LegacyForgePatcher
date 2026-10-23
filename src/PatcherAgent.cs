@@ -9,8 +9,8 @@ namespace LegacyForgePatcher;
 /// the list of handshake messages that drops players at login on Forge for 1.13 to 1.20.1, and the second load of FML's config that crashes Forge and NeoForge
 /// clients at startup from 1.20.1, the set of object holder handlers that mods fill from several threads in Forge from 1.13.2, and the chunk batch answer that drops
 /// Minecraft clients from 1.20.5 when it arrives before play is set up, and the listener lists that EventBus builds under its lock and deadlocks Forge 1.14.2 and
-/// 1.14.3 clients with, and the file watcher that reloads FML's config while Forge 1.13.2 to 1.19.4 still corrects it on a first start, and the network tick that drops new
-/// connections on Forge for Minecraft 1.7.
+/// 1.14.3 clients with, and the file watcher that reloads FML's config while Forge 1.13.2 to 1.19.4 still corrects it on a first start, the network tick that drops new connections on
+/// Forge for Minecraft 1.7, and the class hierarchy cache that ModLauncher's threads share without a lock on Forge for 1.13.2 to 1.15.2.
 /// </summary>
 public sealed class PatcherAgent : JavaAgent
 {
@@ -98,6 +98,7 @@ public sealed class PatcherAgent : JavaAgent
         JavaClasses.Legacyforgepatcher.ClientPackets,
         JavaClasses.Legacyforgepatcher.EventListeners,
         JavaClasses.Legacyforgepatcher.Connections,
+        JavaClasses.Legacyforgepatcher.ClassHierarchyCache,
     ];
 
     /// <summary>Gets every patch the agent registers.</summary>
@@ -114,6 +115,7 @@ public sealed class PatcherAgent : JavaAgent
         .. EventListenerLists.Patches,
         ModLoaderConfigurationWatch.Patch,
         PendingConnections.Patch,
+        ModLauncherHierarchies.Patch,
     ];
 
     /// <inheritdoc/>
@@ -121,8 +123,8 @@ public sealed class PatcherAgent : JavaAgent
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        // Collections names no game type, so the bootstrap loader makes it visible to whichever loader defines FML. The others name the game's classes, so each goes
-        // into the loader of the class that calls it, where those classes resolve.
+        // Collections and ClassHierarchyCache name no game type, so the bootstrap loader makes them visible to whichever loader defines FML or ModLauncher. The
+        // others name the game's classes, so each goes into the loader of the class that calls it, where those classes resolve.
         foreach (JavaClassDefinition helper in Helpers)
             context.DefineClass(helper, IsBootstrapHelper(helper) ? ClassLoaderTarget.Bootstrap : ClassLoaderTarget.PatchedClassLoader);
 
@@ -132,6 +134,6 @@ public sealed class PatcherAgent : JavaAgent
 
     private static bool IsBootstrapHelper(JavaClassDefinition helper)
     {
-        return helper == JavaClasses.Legacyforgepatcher.Collections;
+        return helper == JavaClasses.Legacyforgepatcher.Collections || helper == JavaClasses.Legacyforgepatcher.ClassHierarchyCache;
     }
 }
